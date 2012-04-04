@@ -8,6 +8,8 @@ from core.models import Group, Permission
 from core.rules import apply_rules, match_rule, has_permission
 
 from sample.models import *
+from sample.rules import *
+from sample.groups import *
 
 
 class TestRules(TestCase):
@@ -20,7 +22,8 @@ class TestRules(TestCase):
         Group.register(AdminGroup)
 
         Permission.objects.create(group="admingroup", rule="can_see")
-        Rule.register(CanSee)
+        Rule.register(CanSeeCProducts)
+        Rule.register(CanSeeCProducts)
 
         for product_type in ["A", "B", "C"]:
             get(Product, product_type=product_type)

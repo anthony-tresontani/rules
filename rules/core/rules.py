@@ -1,17 +1,18 @@
 from core.models import Permission, Group, Rule
 
 def apply_rules(on, to, for_):
-    rule = Rule.get_by_name(to)
-    if not has_permission(for_, to):
-        return rule.apply(obj=on) 
-    return on
+    rules = Rule.get_by_name(to)
+    for rule in rules:
+        if not has_permission(for_, to):
+            return rule.apply(obj=on)
+        return on
 
 def match_rule(on, to, for_):
-    rule = Rule.get_by_name(to)
-    if not has_permission(for_, to):
-        return not rule.apply(obj=on)
-    return True
-
+    rules = Rule.get_by_name(to)
+    for rule in rules:
+        if not has_permission(for_, to):
+            return not rule.apply(obj=on)
+        return True
 
 def has_permission(obj, rule):
     permission_for_rule = Permission.objects.filter(rule=rule)

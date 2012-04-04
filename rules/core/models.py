@@ -35,9 +35,7 @@ class Rule(object):
 
      @classmethod
      def get_by_name(cls, name):
-        for rule in cls.rules:
-            if rule.name == name:
-                return rule
+        return filter(lambda rule: rule.group_name == name, cls.rules)
 
      @classmethod
      def apply(cls, obj):
