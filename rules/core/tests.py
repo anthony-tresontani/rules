@@ -17,9 +17,12 @@ class TestRules(TestCase):
     def setUp(self):
         self.user1 = User.objects.create(username="customer")
         self.user2 = User.objects.create(username="admin")
+        self.user3 = User.objects.create(username="anonymous")
+
 
         Group.register(CustomerGroup)
         Group.register(AdminGroup)
+        Group.register(AnonymousGroup, default=True)
 
         Permission.objects.create(group="admingroup", rule="can_see")
         Rule.register(CanSeeCProducts)
@@ -58,3 +61,6 @@ class TestRules(TestCase):
 
     def test_get_group_by_name(self):
        assert_that( Group.get_by_name("customergroup") == CustomerGroup)
+
+    def test_default_group(self):
+        assert_that( Group.get_groups(self.user3), is_(['anonymous']))

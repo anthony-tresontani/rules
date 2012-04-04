@@ -6,10 +6,14 @@ from peak.rules import abstract, when
 # Create your models here.
 class Group(object):
     groups = set([])
+    default = None
 
     @classmethod
-    def register(cls, group_class):
-        cls.groups.add(group_class)
+    def register(cls, group_class, default=False):
+        if default:
+            cls.default = group_class
+        else:
+            cls.groups.add(group_class)
 
     @classmethod
     def belong(cls, obj):
@@ -18,7 +22,11 @@ class Group(object):
     @classmethod
     def get_groups(cls, obj):
         groups_in = filter(lambda gr: gr.belong(obj), cls.groups)
-        return [group.name for group in groups_in]
+        if not groups_in and cls.default:
+            groups_in =  [cls.default.name]
+        else:
+            groups_in = [group.name for group in groups_in]
+        return groups_in
 
     @classmethod
     def get_by_name(cls, name):
