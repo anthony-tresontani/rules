@@ -4,8 +4,9 @@ def apply_rules(on, to, for_):
     rules = Rule.get_by_name(to)
     for rule in rules:
         if not has_permission(for_, to):
-            return rule.apply(obj=on)
-        return on
+            print "rule", rule
+            on = rule.apply(obj=on)
+    return on
 
 def match_rule(on, to, for_):
     rules = Rule.get_by_name(to)

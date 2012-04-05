@@ -2,6 +2,7 @@ from core.models import Rule
 
 class CanSeeCProducts(Rule):
     group_name="can_see"
+    name = "can_see_c"
 
     @classmethod
     def apply_qs(cls, qs):
@@ -14,6 +15,7 @@ class CanSeeCProducts(Rule):
 
 class CanSeeAnyProducts(Rule):
     group_name="can_see"
+    name="can_see_products"
 
     @classmethod
     def apply_qs(cls, qs):
@@ -22,3 +24,15 @@ class CanSeeAnyProducts(Rule):
     @classmethod
     def apply_obj(cls, obj):
         return False
+
+class DeletedProductOutOfStock(Rule):
+    group_name="can_see"
+
+    @classmethod
+    def apply_qs(cls, qs):
+        return qs.exclude(stock=0, status=1)
+
+    @classmethod
+    def apply_obj(cls, obj):
+        return obj.stock == 0 and obj.status == 1
+

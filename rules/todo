@@ -1,0 +1,4 @@
+add an inclusion mecanism - this rule depends on that one
+add a masquerade test
+add rule grouping - ie many rules applied to a permission 
+add a test for out of stock product with status deleted

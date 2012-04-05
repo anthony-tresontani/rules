@@ -24,9 +24,12 @@ class TestRules(TestCase):
         Group.register(AdminGroup)
         Group.register(AnonymousGroup, default=True)
 
-        Permission.objects.create(group="admingroup", rule="can_see")
+        Permission.objects.create(group="admingroup", rule="can_see_C")
+        Permission.objects.create(group="admingroup", rule="can_see_products")
+        Permission.objects.create(group="customer", rule="can_see_products")
         Rule.register(CanSeeCProducts)
-        Rule.register(CanSeeCProducts)
+        Rule.register(CanSeeAnyProducts)
+        Rule.register(CanSeeAnyProducts)
 
         for product_type in ["A", "B", "C"]:
             get(Product, product_type=product_type)
@@ -37,8 +40,10 @@ class TestRules(TestCase):
             the user 1 sees A and B product
             the user 2 sees A, B and C
         """
-        assert_that( apply_rules(on=Product.objects.all(), to="can_see", for_=self.user1).count(), 3)
-        assert_that( apply_rules(on=Product.objects.all(), to="can_see", for_=self.user2).count(), 2)
+        assert_that( apply_rules(on=Product.objects.all(), to="can_see", for_=self.user1).count(), is_(2))
+        assert_that( apply_rules(on=Product.objects.all(), to="can_see", for_=self.user2).count(), is_(3))
+        assert_that( apply_rules(on=Product.objects.all(), to="can_see", for_=self.user3).count(), is_(0))
+
        
         product_C = Product.objects.get(product_type="C")
         assert_that( match_rule(on=product_C, to="can_see", for_=self.user1), is_(False))
@@ -56,7 +61,7 @@ class TestRules(TestCase):
       
 
     def test_has_permission(self):
-        assert_that( has_permission(self.user2, "can_see"), is_(True))
+        assert_that( has_permission(self.user2, "can_see_C"), is_(True))
         assert_that( has_permission(self.user1, "can_see"), is_(False))
 
     def test_get_group_by_name(self):
