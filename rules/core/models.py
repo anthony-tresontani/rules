@@ -19,6 +19,11 @@ class Group(object):
     def belong(cls, obj):
         return False
 
+
+    @classmethod
+    def get_group_names(cls):
+        return [group.name for group in cls.groups]
+
     @classmethod
     def get_groups(cls, obj):
         groups_in = filter(lambda gr: gr.belong(obj), cls.groups)
@@ -40,6 +45,10 @@ class Rule(object):
      @classmethod
      def register(cls, rule_class):
          cls.rules.add(rule_class)
+
+     @classmethod
+     def get_rule_names(cls):
+         return [rule.name for rule in cls.rules]
 
      @classmethod
      def get_by_name(cls, name):
@@ -67,3 +76,10 @@ class Permission(models.Model):
     group = models.CharField(max_length=80)
     rule = models.CharField(max_length=80)
 
+    def save(self, *args, **kwargs):
+        if self.group not in Group.get_group_names():
+            raise ValueError("Group %s has not been registered" % self.group)
+	if self.rule not in Rule.get_rule_names():
+            raise ValueError("Rule %s has not been registered" % self.rule)
+        super(Permission, self).save(*args, **kwargs)
+        
