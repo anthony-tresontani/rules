@@ -42,15 +42,17 @@ class DeletedProductOutOfStock(Rule):
 
 class CanMasquerade(Rule):
     group_name="masquerade"
-    name="can_massquerade_as_any" 
+    name="can_masquerade_as_any" 
+    inclusive = True  # return True means can
 
     @classmethod
     def apply_obj(cls, obj):
+        print "Can masquerade"
         return False
 
 class CanMasqueradeAsCustomer(Rule):
     group_name="masquerade"
-    name="can_massquerade_as_customer" 
+    name="can_masquerade_as_customer" 
 
     @classmethod
     def apply_obj(cls, obj):

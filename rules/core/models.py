@@ -11,6 +11,8 @@ class Group(object):
     @classmethod
     def register(cls, group_class, default=False):
         if default:
+            if cls.default:
+                raise AttributeError("Cannot set more than one group as default")
             cls.default = group_class
         else:
             cls.groups.add(group_class)
@@ -28,7 +30,7 @@ class Group(object):
     def get_groups(cls, obj):
         groups_in = filter(lambda gr: gr.belong(obj), cls.groups)
         if not groups_in and cls.default:
-            groups_in =  [cls.default.name]
+            groups_in = [cls.default.name]
         else:
             groups_in = [group.name for group in groups_in]
         return groups_in
@@ -39,47 +41,71 @@ class Group(object):
             if group.name == name:
                 return group
 
+
 class Rule(object):
-     rules = set([])
+    rules = set([])
 
-     @classmethod
-     def register(cls, rule_class):
-         cls.rules.add(rule_class)
+    def __init__(self, next_=None):
+        self.next = next_
 
-     @classmethod
-     def get_rule_names(cls):
-         return [rule.name for rule in cls.rules]
+    @classmethod
+    def register(cls, rule_class, type="apply"):
+        cls.rules.add(rule_class)
 
-     @classmethod
-     def get_by_name(cls, name):
+    @classmethod
+    def get_rule_names(cls):
+        return [rule.name for rule in cls.rules]
+
+    @classmethod
+    def get_by_name(cls, name):
         return filter(lambda rule: rule.group_name == name, cls.rules)
 
-     @classmethod
-     def apply(cls, obj):
-         return _apply(cls, obj)
+    @classmethod
+    def apply(cls, obj):
+        inclusive = getattr(cls, "inclusive", False)
+        if inclusive:
+            return not _apply(cls, obj)
+        return _apply(cls, obj)
+
+    @classmethod
+    def check_rules(cls, rules, obj):
+        next_rules = rules[1:]
+        next_rules.append(None)
+        rules = [rule() for rule in rules]
+        for (rule, next_) in zip(rules, next_rules):
+            rule.next_ = next_
+        rule[0].check(obj)
+
+    def check(self, obj):
+        return _apply(self, obj)
+
 
 @abstract
 def _apply(cls, obj):
     pass
 
+
 @when(_apply, "isinstance(obj, QuerySet)")
 def _apply_qs(cls, qs):
     return cls.apply_qs(qs)
+
 
 @when(_apply, "not isinstance(obj, QuerySet)")
 def _apply_obj(cls, qs):
     return cls.apply_obj(qs)
 
 
-class Permission(models.Model):
+class ACL(models.Model):
+    action = (("Apply", "APPLY"), ("Deny", "DENY"))
 
     group = models.CharField(max_length=80)
     rule = models.CharField(max_length=80)
+    type = models.CharField(max_length=10, choices=action, default="APPLY")
 
     def save(self, *args, **kwargs):
         if self.group not in Group.get_group_names():
             raise ValueError("Group %s has not been registered" % self.group)
-	if self.rule not in Rule.get_rule_names():
+        if self.rule not in Rule.get_rule_names():
             raise ValueError("Rule %s has not been registered" % self.rule)
-        super(Permission, self).save(*args, **kwargs)
+        super(ACL, self).save(*args, **kwargs)
         

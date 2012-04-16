@@ -1,38 +1,43 @@
 from django.test import TestCase
-from django.contrib.auth.models import User
 
 from hamcrest import *
 from django_dynamic_fixture import get
 
-from core.models import Group, Permission
 from core.rules import apply_rules, match_rule, has_permission, get_rules
 
 from sample.models import *
 from sample.rules import *
 from sample.groups import *
 
+from django.contrib.auth.models import User
+from core.models import Group, ACL
 
 class TestRules(TestCase):
 
     def setUp(self):
+        Group.default = None
+
         self.customer = User.objects.create(username="customer")
         self.rep = User.objects.create(username="rep")
         self.admin = User.objects.create(username="admin")
         self.anonymous = User.objects.create(username="anonymous")
 
-
         Group.register(CustomerGroup)
         Group.register(AdminGroup)
         Group.register(AnonymousGroup, default=True)
+        Group.register(RepGroup)
 
         Rule.register(CanSeeCProducts)
         Rule.register(CanSeeAnyProducts)
         Rule.register(CanSeeAnyProducts)
         Rule.register(CanMasquerade)
+        Rule.register(CanMasqueradeAsCustomer)
 
-        Permission.objects.create(group="admingroup", rule="can_see_C")
-        Permission.objects.create(group="admingroup", rule="can_see_products")
-        Permission.objects.create(group="customergroup", rule="can_see_products")
+        ACL.objects.create(group="admingroup", rule="can_see_C")
+        ACL.objects.create(group="admingroup", rule="can_see_products")
+        ACL.objects.create(group="customergroup", rule="can_see_products")
+        ACL.objects.create(group="rep", rule="can_masquerade_as_any")
+        ACL.objects.create(group="admingroup", rule="can_masquerade_as_customer")
 
         for product_type in ["A", "B", "C"]:
             get(Product, product_type=product_type)
@@ -47,7 +52,6 @@ class TestRules(TestCase):
         assert_that( apply_rules(on=Product.objects.all(), to="can_see", for_=self.admin).count(), is_(3))
         assert_that( apply_rules(on=Product.objects.all(), to="can_see", for_=self.anonymous).count(), is_(0))
 
-       
         product_C = Product.objects.get(product_type="C")
         assert_that( match_rule(on=product_C, to="can_see", for_=self.customer), is_(False))
         assert_that( match_rule(on=product_C, to="can_see", for_=self.admin), is_(True))
@@ -57,8 +61,8 @@ class TestRules(TestCase):
         assert_that( match_rule(on=self.customer, to="masquerade", for_=self.admin), is_(True))
         assert_that( match_rule(on=self.customer, to="masquerade", for_=self.customer), is_(False))
 
-        assert_that( match_rule(on=self.rep, to="masquerade", for_=self.admin), is_(True))
-        assert_that( match_rule(on=self.rep, to="masquerade", for_=self.customer), is_(True))
+        assert_that( match_rule(on=self.admin, to="masquerade", for_=self.rep), is_(True))
+        assert_that( match_rule(on=self.customer, to="masquerade", for_=self.rep), is_(True))
         assert_that( match_rule(on=self.rep, to="masquerade", for_=self.rep), is_(True))
 
         assert_that( match_rule(on=self.admin, to="masquerade", for_=self.admin), is_(False))

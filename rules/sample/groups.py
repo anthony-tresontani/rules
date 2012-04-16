@@ -18,3 +18,12 @@ class AdminGroup(Group):
 
 class AnonymousGroup(Group):
     name = "anonymous"
+
+class RepGroup(Group):
+    name = "rep"
+
+    @classmethod
+    def belong(cls, obj):
+        return obj.username == "rep"
+
+
