@@ -1,32 +1,51 @@
+from django.db.models.query_utils import Q
 from core.models import ACL, Group, Rule
 
 
-def get_rules(to):
-    rules = Rule.get_by_name(to)
-    if not rules:
-        raise ValueError("No rules found for action group %s" % to)
-    print "rules available", rules
-    return rules
+def get_permissions(for_, action, groups):
+    apply_permissions = ACL.objects.filter(group__in=groups, action=action, type=ACL.APPLY)
+    deny_permissions = ACL.objects.filter(action=action, type=ACL.DENY)
+    return apply_permissions, deny_permissions
 
-def apply_rules(on, to, for_):
-    for rule in get_rules(to):
-        if not has_permission(for_, rule.name):
-            on = rule.apply(obj=on)
+def apply_rules(on, action, for_):
+    model = on.model
+    groups = Group.get_groups(for_)
+    apply_permissions, deny_permissions = get_permissions(for_, action, groups)
+    if not apply_permissions:
+        return model.objects.none()
+
+    for permission in apply_permissions:
+        rule = Rule.get_by_name(permission.rule)
+        filters = rule.apply(obj=on)
+        on = model.objects.filter(**filters)
+
+    for permission in deny_permissions:
+        if not ACL.objects.filter(action=action, group__in=groups, rule=permission.rule).exists():
+            rule = Rule.get_by_name(permission.rule)
+            filters = rule.apply(obj=on)
+            on = model.objects.exclude(**filters)
     return on
 
-def match_rule(on, to, for_):
-    rules_to_be_applied = filter(lambda rule: not has_permission(for_, rule.name), get_rules(to))
-    for rule in rules_to_be_applied:
-        result = not rule.apply(obj=on)
+def match_rule(on, action, for_):
+    print "FOR", for_
+    groups = Group.get_groups(for_)
+    apply_permissions, deny_permissions = get_permissions(for_, action, groups)
+    if not apply_permissions:
+        return False
+
+    print apply_permissions
+    for permission in apply_permissions:
+        rule = Rule.get_by_name(permission.rule)
+        result = rule.apply(obj=on)
         if not result:
             return result
-    return True
 
-def has_permission(obj, rule):
-    permission_for_rule = ACL.objects.filter(rule=rule)
-    for group_name in [perm.group for perm in permission_for_rule]:
-        group = Group.get_by_name(group_name)
-        if group.belong(obj):
-            return True
-    return False
-    
+    for permission in deny_permissions:
+        if not ACL.objects.filter(action=action, group__in=groups, rule=permission.rule).exists():
+            rule = Rule.get_by_name(permission.rule)
+            exclude = rule.apply(obj=on)
+#            print "result", result, "on", on
+            if exclude:
+                return False
+    return result
+

@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from core.models import Rule, Group
 from sample.groups import CustomerGroup
+from sample.models import Product
 
 class CanSeeCProducts(Rule):
     group_name="can_see"
@@ -8,7 +9,7 @@ class CanSeeCProducts(Rule):
 
     @classmethod
     def apply_qs(cls, qs):
-        return qs.exclude(product_type="C")
+        return {"product_type":"C"}
 
     @classmethod
     def apply_obj(cls, obj):
@@ -21,11 +22,11 @@ class CanSeeAnyProducts(Rule):
 
     @classmethod
     def apply_qs(cls, qs):
-        return qs.none()
+        return {}
 
     @classmethod
     def apply_obj(cls, obj):
-        return False
+        return isinstance(obj, Product)
 
 class DeletedProductOutOfStock(Rule):
     group_name = "can_see"
@@ -33,7 +34,7 @@ class DeletedProductOutOfStock(Rule):
 
     @classmethod
     def apply_qs(cls, qs):
-        return qs.exclude(stock=0, status=1)
+        return {"stock":0, "status":1}
 
     @classmethod
     def apply_obj(cls, obj):
@@ -43,12 +44,10 @@ class DeletedProductOutOfStock(Rule):
 class CanMasquerade(Rule):
     group_name="masquerade"
     name="can_masquerade_as_any" 
-    inclusive = True  # return True means can
 
     @classmethod
     def apply_obj(cls, obj):
-        print "Can masquerade"
-        return False
+        return True
 
 class CanMasqueradeAsCustomer(Rule):
     group_name="masquerade"
@@ -57,5 +56,5 @@ class CanMasqueradeAsCustomer(Rule):
     @classmethod
     def apply_obj(cls, obj):
         if isinstance(obj, User):
-           return CustomerGroup in Group.get_groups(obj) 
+           return "customergroup" in Group.get_groups(obj)
         return False
