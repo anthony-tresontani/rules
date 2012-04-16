@@ -17,17 +17,23 @@ def apply_rules(on, action, for_):
     for permission in apply_permissions:
         rule = Rule.get_by_name(permission.rule)
         filters = rule.apply(obj=on)
-        on = model.objects.filter(**filters)
+        if isinstance(filters, dict):
+            on = model.objects.filter(**filters)
+        else:
+            on = model.objects.filter(filters)
 
     for permission in deny_permissions:
         if not ACL.objects.filter(action=action, group__in=groups, rule=permission.rule).exists():
             rule = Rule.get_by_name(permission.rule)
             filters = rule.apply(obj=on)
-            on = model.objects.exclude(**filters)
+            if isinstance(filters, dict):
+                on = model.objects.exclude(**filters)
+            else:
+                on = model.objects.exclude(filters)
+
     return on
 
 def match_rule(on, action, for_):
-    print "FOR", for_
     groups = Group.get_groups(for_)
     apply_permissions, deny_permissions = get_permissions(for_, action, groups)
     if not apply_permissions:
@@ -44,7 +50,6 @@ def match_rule(on, action, for_):
         if not ACL.objects.filter(action=action, group__in=groups, rule=permission.rule).exists():
             rule = Rule.get_by_name(permission.rule)
             exclude = rule.apply(obj=on)
-#            print "result", result, "on", on
             if exclude:
                 return False
     return result

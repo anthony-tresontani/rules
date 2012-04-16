@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.db.models.query_utils import Q
 from core.models import Rule, Group
 from sample.groups import CustomerGroup
 from sample.models import Product
@@ -9,7 +10,7 @@ class CanSeeCProducts(Rule):
 
     @classmethod
     def apply_qs(cls, qs):
-        return {"product_type":"C"}
+        return Q(product_type="C")
 
     @classmethod
     def apply_obj(cls, obj):
