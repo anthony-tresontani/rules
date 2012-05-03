@@ -7,5 +7,5 @@ setup(name='django-rules',
       description='Dynamic rule handling',
       author='Anthony Tresontani',
       author_email='dev.tresontani@gmail.com',
-      packages=['rules.core'],
+      packages=['rules'],
      )
