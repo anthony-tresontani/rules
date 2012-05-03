@@ -3,7 +3,7 @@ from django.test import TestCase
 from hamcrest import *
 from django_dynamic_fixture import get
 
-from core.rules import ApplyRules, is_rule_matching
+from core.rules import ApplyRules, IsRuleMatching
 
 from sample.models import *
 from sample.rules import *
@@ -52,23 +52,23 @@ class TestRules(TestCase):
         assert_that( ApplyRules(on=Product.objects.all(), action="can_see", for_=self.customer).check().count(), is_(2))
 
         product_A = Product.objects.get(product_type="A")
-        assert_that( is_rule_matching(on=product_A, action="can_see", for_=self.anonymous), is_(False))
-        assert_that( is_rule_matching(on=product_A, action="can_see", for_=self.customer), is_(True))
+        assert_that( IsRuleMatching(on=product_A, action="can_see", for_=self.anonymous).check(), is_(False))
+        assert_that( IsRuleMatching(on=product_A, action="can_see", for_=self.customer).check(), is_(True))
 
         product_C = Product.objects.get(product_type="C")
-        assert_that( is_rule_matching(on=product_C, action="can_see", for_=self.customer), is_(False))
-        assert_that( is_rule_matching(on=product_C, action="can_see", for_=self.admin), is_(True))
+        assert_that( IsRuleMatching(on=product_C, action="can_see", for_=self.customer).check(), is_(False))
+        assert_that( IsRuleMatching(on=product_C, action="can_see", for_=self.admin).check(), is_(True))
 
     def test_acceptance_masquerading(self):
-        assert_that( is_rule_matching(on=self.customer, action="masquerade", for_=self.customer), is_(False))
-        assert_that( is_rule_matching(on=self.customer, action="masquerade", for_=self.rep), is_(True))
-        assert_that( is_rule_matching(on=self.customer, action="masquerade", for_=self.admin), is_(True))
+        assert_that( IsRuleMatching(on=self.customer, action="masquerade", for_=self.customer).check(), is_(False))
+        assert_that( IsRuleMatching(on=self.customer, action="masquerade", for_=self.rep).check(), is_(True))
+        assert_that( IsRuleMatching(on=self.customer, action="masquerade", for_=self.admin).check(), is_(True))
 
-        assert_that( is_rule_matching(on=self.admin, action="masquerade", for_=self.rep), is_(True))
-        assert_that( is_rule_matching(on=self.customer, action="masquerade", for_=self.rep), is_(True))
-        assert_that( is_rule_matching(on=self.rep, action="masquerade", for_=self.rep), is_(True))
+        assert_that( IsRuleMatching(on=self.admin, action="masquerade", for_=self.rep).check(), is_(True))
+        assert_that( IsRuleMatching(on=self.customer, action="masquerade", for_=self.rep).check(), is_(True))
+        assert_that( IsRuleMatching(on=self.rep, action="masquerade", for_=self.rep).check(), is_(True))
 
-        assert_that( is_rule_matching(on=self.admin, action="masquerade", for_=self.admin), is_(False))
+        assert_that( IsRuleMatching(on=self.admin, action="masquerade", for_=self.admin).check(), is_(False))
 
     def test_belong_to_group(self):
         assert_that( CustomerGroup.belong(self.customer), is_(True))

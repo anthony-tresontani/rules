@@ -7,13 +7,14 @@ def get_permissions(for_, action, groups):
     deny_permissions = ACL.objects.filter(action=action, type=ACL.DENY)
     return apply_permissions, deny_permissions
 
-class ApplyRules(object):
+class RuleHandler(object):
 
     def __init__(self, on, action, for_):
         self.on = on
         self.action = action
         self.for_ = for_
 
+class ApplyRules(RuleHandler):
     def check(self):
         model = self.on.model
         groups = Group.get_groups(self.for_)
@@ -39,25 +40,24 @@ class ApplyRules(object):
                     on = model.objects.exclude(filters)
 
         return on
+class IsRuleMatching(RuleHandler):
+    def check(self):
+	groups = Group.get_groups(self.for_)
+	apply_permissions, deny_permissions = get_permissions(self.for_, self.action, groups)
+	if not apply_permissions:
+	    return False
 
-def is_rule_matching(on, action, for_):
-    groups = Group.get_groups(for_)
-    apply_permissions, deny_permissions = get_permissions(for_, action, groups)
-    if not apply_permissions:
-        return False
+	for permission in apply_permissions:
+	    rule = Rule.get_by_name(permission.rule)
+	    result = rule.apply(obj=self.on)
+	    if not result:
+		return result
 
-    print apply_permissions
-    for permission in apply_permissions:
-        rule = Rule.get_by_name(permission.rule)
-        result = rule.apply(obj=on)
-        if not result:
-            return result
-
-    for permission in deny_permissions:
-        if not ACL.objects.filter(action=action, group__in=groups, rule=permission.rule).exists():
-            rule = Rule.get_by_name(permission.rule)
-            exclude = rule.apply(obj=on)
-            if exclude:
-                return False
-    return result
+	for permission in deny_permissions:
+	    if not ACL.objects.filter(action=self.action, group__in=groups, rule=permission.rule).exists():
+		rule = Rule.get_by_name(permission.rule)
+		exclude = rule.apply(obj=self.on)
+		if exclude:
+		    return False
+	return result
 
