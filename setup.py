@@ -1,5 +1,7 @@
 from distutils.core import setup
 
+requires = ['PEAK-Rules']
+
 setup(name='django-rules',
       version='0.1',
       description='Dynamic rule handling',
