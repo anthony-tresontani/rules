@@ -31,12 +31,12 @@ class TestRules(TestCase):
         Rule.register(CanMasquerade)
         Rule.register(CanMasqueradeAsCustomer)
 
-        ACL.objects.create(group="customergroup", rule="can_see_products", action="can_see", type=ACL.APPLY)
+        ACL.objects.create(group="customergroup", rule="can_see_products", action="can_see", type=ACL.ALLOW)
         ACL.objects.create(group="admingroup", rule="can_see_C", action="can_see", type=ACL.DENY)
-        ACL.objects.create(group="admingroup", rule="can_see_products", action="can_see", type=ACL.APPLY)
+        ACL.objects.create(group="admingroup", rule="can_see_products", action="can_see", type=ACL.ALLOW)
 
-        ACL.objects.create(group="rep", rule="can_masquerade_as_any", action="masquerade", type=ACL.APPLY)
-        ACL.objects.create(group="admingroup", rule="can_masquerade_as_customer", action="masquerade", type=ACL.APPLY)
+        ACL.objects.create(group="rep", rule="can_masquerade_as_any", action="masquerade", type=ACL.ALLOW)
+        ACL.objects.create(group="admingroup", rule="can_masquerade_as_customer", action="masquerade", type=ACL.ALLOW)
 
         for product_type in ["A", "B", "C"]:
             get(Product, product_type=product_type)

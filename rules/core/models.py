@@ -49,8 +49,8 @@ def _apply_obj(cls, qs):
 
 
 class ACL(models.Model):
-    APPLY, DENY = "APPLY", "DENY"
-    action_type = (("Apply", APPLY), ("Deny", DENY))
+    ALLOW, DENY = "ALLOW", "DENY"
+    action_type = (("Allow", ALLOW), ("Deny", DENY))
 
     action = models.CharField(max_length=20, null=False)
     group = models.CharField(max_length=80)
@@ -75,7 +75,7 @@ class Rule(object):
         self.next = next_
 
     @classmethod
-    def register(cls, rule_class, type=ACL.APPLY, action=None):
+    def register(cls, rule_class, type=ACL.ALLOW, action=None):
         cls.rules.add(rule_class)
         if type == ACL.DENY:
             ACL.objects.create(action=action, type=ACL.DENY, rule=rule_class.name)

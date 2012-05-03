@@ -3,7 +3,7 @@ from core.models import ACL, Group, Rule
 
 
 def get_permissions(for_, action, groups):
-    apply_permissions = ACL.objects.filter(group__in=groups, action=action, type=ACL.APPLY)
+    apply_permissions = ACL.objects.filter(group__in=groups, action=action, type=ACL.ALLOW)
     deny_permissions = ACL.objects.filter(action=action, type=ACL.DENY)
     return apply_permissions, deny_permissions
 
