@@ -37,7 +37,7 @@ class ApplyRules(RuleHandler):
     def get_no_permission_value(self):
         return self.model.objects.none()
 
-    def apply_perm(self, perm, method="filter"):
+    def apply_perm(self, perm, method):
 	rule = Rule.get_by_name(perm.rule)
 	filters = rule.apply(obj=self.on)
         filter_method = getattr(self.model.objects, method)
@@ -49,17 +49,11 @@ class ApplyRules(RuleHandler):
 
     def _check(self):
         for permission in self.apply_permissions:
-            on = self.apply_perm(permission, "filter")
+            on = self.apply_perm(permission, method="filter")
 
         for permission in self.deny_permissions:
             if not ACL.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
-                rule = Rule.get_by_name(permission.rule)
-                filters = rule.apply(obj=self.on)
-                if isinstance(filters, dict):
-                    on = self.model.objects.exclude(**filters)
-                else:
-                    on = self.model.objects.exclude(filters)
-
+                on = self.apply_perm(permission, method="exclude")
         return on
 class IsRuleMatching(RuleHandler):
     no_permission_value = False
