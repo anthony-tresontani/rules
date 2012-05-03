@@ -13,48 +13,66 @@ class RuleHandler(object):
         self.on = on
         self.action = action
         self.for_ = for_
+        self.groups = Group.get_groups(self.for_)
+        self.apply_permissions, self.deny_permissions = get_permissions(self.for_, self.action, self.groups)
+
+    def no_perm_value(self):
+        if hasattr(self, "get_no_permission_value"):
+            return getattr(self, "get_no_permission_value")()
+        else:
+            return self.no_permission_value
+
+    def check(self):
+        if not self.apply_permissions:
+            return self.no_perm_value()
+        return self._check()
+
 
 class ApplyRules(RuleHandler):
-    def check(self):
-        model = self.on.model
-        groups = Group.get_groups(self.for_)
-        apply_permissions, deny_permissions = get_permissions(self.for_, self.action, groups)
-        if not apply_permissions:
-            return model.objects.none()
 
-        for permission in apply_permissions:
-            rule = Rule.get_by_name(permission.rule)
-            filters = rule.apply(obj=self.on)
-            if isinstance(filters, dict):
-                on = model.objects.filter(**filters)
-            else:
-                on = model.objects.filter(filters)
+    def __init__(self, on, action, for_):
+        super(ApplyRules, self).__init__(on, action, for_)
+        self.model = self.on.model
 
-        for permission in deny_permissions:
-            if not ACL.objects.filter(action=self.action, group__in=groups, rule=permission.rule).exists():
+    def get_no_permission_value(self):
+        return self.model.objects.none()
+
+    def apply_perm(self, perm, method="filter"):
+	rule = Rule.get_by_name(perm.rule)
+	filters = rule.apply(obj=self.on)
+        filter_method = getattr(self.model.objects, method)
+	if isinstance(filters, dict):
+	    on = filter_method(**filters)
+	else:
+	    on = filter_method(filters)
+        return on
+
+    def _check(self):
+        for permission in self.apply_permissions:
+            on = self.apply_perm(permission, "filter")
+
+        for permission in self.deny_permissions:
+            if not ACL.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
                 rule = Rule.get_by_name(permission.rule)
                 filters = rule.apply(obj=self.on)
                 if isinstance(filters, dict):
-                    on = model.objects.exclude(**filters)
+                    on = self.model.objects.exclude(**filters)
                 else:
-                    on = model.objects.exclude(filters)
+                    on = self.model.objects.exclude(filters)
 
         return on
 class IsRuleMatching(RuleHandler):
-    def check(self):
-	groups = Group.get_groups(self.for_)
-	apply_permissions, deny_permissions = get_permissions(self.for_, self.action, groups)
-	if not apply_permissions:
-	    return False
+    no_permission_value = False
 
-	for permission in apply_permissions:
+    def _check(self):
+	for permission in self.apply_permissions:
 	    rule = Rule.get_by_name(permission.rule)
 	    result = rule.apply(obj=self.on)
 	    if not result:
 		return result
 
-	for permission in deny_permissions:
-	    if not ACL.objects.filter(action=self.action, group__in=groups, rule=permission.rule).exists():
+	for permission in self.deny_permissions:
+	    if not ACL.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
 		rule = Rule.get_by_name(permission.rule)
 		exclude = rule.apply(obj=self.on)
 		if exclude:
