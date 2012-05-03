@@ -1,6 +1,6 @@
 from distutils.core import setup
 
-requires = ['PEAK-Rules']
+requires = ['PEAK-Rules==0.5a1.dev-r2707']
 
 setup(name='django-rules',
       version='0.1',
