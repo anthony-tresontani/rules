@@ -1,4 +1,5 @@
 # Django settings for rules project.
+import sys
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -138,6 +139,11 @@ LOGGING = {
         'mail_admins': {
             'level': 'ERROR',
             'class': 'django.utils.log.AdminEmailHandler'
+        },
+    'console': {
+            'level':'DEBUG',
+            'class':'logging.StreamHandler',
+            'strm' if int(sys.version[2:3]) < 7 else 'stream': sys.stdout ,
         }
     },
     'loggers': {
@@ -149,6 +155,11 @@ LOGGING = {
         'django.db.backends': {
             'handlers': ['mail_admins'],
             'level':'ERROR',
+            'propagate': False,
+        },
+        'rules': {
+            'handlers': ['console'],
+            'level':'DEBUG',
             'propagate': False,
         },
     }

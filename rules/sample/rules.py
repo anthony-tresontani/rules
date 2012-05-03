@@ -7,6 +7,7 @@ from sample.models import Product
 class CanSeeCProducts(Rule):
     group_name="can_see"
     name = "can_see_C"
+    message = "Cannot see C product"
 
     @classmethod
     def apply_qs(cls, qs):
@@ -43,16 +44,18 @@ class DeletedProductOutOfStock(Rule):
 
 
 class CanMasquerade(Rule):
-    group_name="masquerade"
-    name="can_masquerade_as_any" 
+    group_name = "masquerade"
+    name = "can_masquerade_as_any" 
+    message = "Cant masquerade"
 
     @classmethod
     def apply_obj(cls, obj):
         return True
 
 class CanMasqueradeAsCustomer(Rule):
-    group_name="masquerade"
-    name="can_masquerade_as_customer" 
+    group_name = "masquerade"
+    name = "can_masquerade_as_customer" 
+    message = "Cannot masquerade as a customer" 
 
     @classmethod
     def apply_obj(cls, obj):

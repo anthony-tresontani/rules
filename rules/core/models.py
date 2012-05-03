@@ -89,6 +89,11 @@ class Rule(object):
         for rule in cls.rules:
             if rule.name == name:
                 return rule
+    @classmethod
+    def get_message(cls):
+        if hasattr(cls, "message"):
+            return cls.message
+        return ""
 
     @classmethod
     def apply(cls, obj):

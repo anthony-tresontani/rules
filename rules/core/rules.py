@@ -1,6 +1,10 @@
+import logging
+
 from django.db.models.query_utils import Q
 from core.models import ACL, Group, Rule
 
+
+logger = logging.getLogger("rules")
 
 def get_permissions(for_, action, groups):
     apply_permissions = ACL.objects.filter(group__in=groups, action=action, type=ACL.ALLOW)
@@ -8,7 +12,6 @@ def get_permissions(for_, action, groups):
     return apply_permissions, deny_permissions
 
 class RuleHandler(object):
-
     def __init__(self, on, action, for_):
         self.on = on
         self.action = action
@@ -24,6 +27,8 @@ class RuleHandler(object):
 
     def check(self):
         if not self.apply_permissions:
+            logger.info("No permission found")
+            self.reason = "No permission found"
             return self.no_perm_value()
         return self._check()
 
@@ -55,21 +60,31 @@ class ApplyRules(RuleHandler):
             if not ACL.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
                 on = self.apply_perm(permission, method="exclude")
         return on
+
+
 class IsRuleMatching(RuleHandler):
     no_permission_value = False
+
+    def __init__(self, on, action, for_):
+        super(IsRuleMatching, self).__init__(on, action, for_)
+        self.reason = None
 
     def _check(self):
 	for permission in self.apply_permissions:
 	    rule = Rule.get_by_name(permission.rule)
 	    result = rule.apply(obj=self.on)
 	    if not result:
-		return result
+                logger.info("Allow rule %s failed", rule)
+                self.reason = rule.get_message()
+		return False
 
 	for permission in self.deny_permissions:
 	    if not ACL.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
 		rule = Rule.get_by_name(permission.rule)
 		exclude = rule.apply(obj=self.on)
 		if exclude:
+                    logger.info("Deny rule %s failed", rule)
+                    self.reason = rule.get_message() 
 		    return False
 	return result
 

@@ -41,6 +41,8 @@ class TestRules(TestCase):
         for product_type in ["A", "B", "C"]:
             get(Product, product_type=product_type)
 
+        self.product_C = Product.objects.get(product_type="C")
+
     def test_acceptance_rules(self):
         """
         Given 2 users being in 2 groups (customer and productAdmin) and a list of A, B and C products,
@@ -55,9 +57,8 @@ class TestRules(TestCase):
         assert_that( IsRuleMatching(on=product_A, action="can_see", for_=self.anonymous).check(), is_(False))
         assert_that( IsRuleMatching(on=product_A, action="can_see", for_=self.customer).check(), is_(True))
 
-        product_C = Product.objects.get(product_type="C")
-        assert_that( IsRuleMatching(on=product_C, action="can_see", for_=self.customer).check(), is_(False))
-        assert_that( IsRuleMatching(on=product_C, action="can_see", for_=self.admin).check(), is_(True))
+        assert_that( IsRuleMatching(on=self.product_C, action="can_see", for_=self.customer).check(), is_(False))
+        assert_that( IsRuleMatching(on=self.product_C, action="can_see", for_=self.admin).check(), is_(True))
 
     def test_acceptance_masquerading(self):
         assert_that( IsRuleMatching(on=self.customer, action="masquerade", for_=self.customer).check(), is_(False))
@@ -69,6 +70,11 @@ class TestRules(TestCase):
         assert_that( IsRuleMatching(on=self.rep, action="masquerade", for_=self.rep).check(), is_(True))
 
         assert_that( IsRuleMatching(on=self.admin, action="masquerade", for_=self.admin).check(), is_(False))
+
+    def test_match_reason(self):
+        match = IsRuleMatching(on=self.product_C, action="can_see", for_=self.customer)
+        match.check()
+        assert_that(match.reason, is_("Cannot see C product"))
 
     def test_belong_to_group(self):
         assert_that( CustomerGroup.belong(self.customer), is_(True))
