@@ -33,7 +33,7 @@ def apply_rules(on, action, for_):
 
     return on
 
-def match_rule(on, action, for_):
+def is_rule_matching(on, action, for_):
     groups = Group.get_groups(for_)
     apply_permissions, deny_permissions = get_permissions(for_, action, groups)
     if not apply_permissions:
