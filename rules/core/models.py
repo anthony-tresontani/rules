@@ -22,7 +22,13 @@ class Group(object):
 
     @classmethod
     def get_groups(cls, obj):
-        groups_in = filter(lambda gr: gr.belong(obj), cls.groups)
+        groups_in = []
+        for group in cls.groups:
+            try:
+                if group.belong(obj):
+                    groups_in.append(group)
+            except AttributeError, e:
+                pass
         return [group.name for group in groups_in]
 
     @classmethod
