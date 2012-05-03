@@ -3,7 +3,7 @@ from django.test import TestCase
 from hamcrest import *
 from django_dynamic_fixture import get
 
-from core.rules import apply_rules, is_rule_matching
+from core.rules import ApplyRules, is_rule_matching
 
 from sample.models import *
 from sample.rules import *
@@ -47,9 +47,9 @@ class TestRules(TestCase):
             the user 1 sees A and B product
             the user 2 sees A, B and C
         """
-        assert_that( apply_rules(on=Product.objects.all(), action="can_see", for_=self.anonymous).count(), is_(0))
-        assert_that( apply_rules(on=Product.objects.all(), action="can_see", for_=self.admin).count(), is_(3))
-        assert_that( apply_rules(on=Product.objects.all(), action="can_see", for_=self.customer).count(), is_(2))
+        assert_that( ApplyRules(on=Product.objects.all(), action="can_see", for_=self.anonymous).check().count(), is_(0))
+        assert_that( ApplyRules(on=Product.objects.all(), action="can_see", for_=self.admin).check().count(), is_(3))
+        assert_that( ApplyRules(on=Product.objects.all(), action="can_see", for_=self.customer).check().count(), is_(2))
 
         product_A = Product.objects.get(product_type="A")
         assert_that( is_rule_matching(on=product_A, action="can_see", for_=self.anonymous), is_(False))
@@ -63,7 +63,6 @@ class TestRules(TestCase):
         assert_that( is_rule_matching(on=self.customer, action="masquerade", for_=self.customer), is_(False))
         assert_that( is_rule_matching(on=self.customer, action="masquerade", for_=self.rep), is_(True))
         assert_that( is_rule_matching(on=self.customer, action="masquerade", for_=self.admin), is_(True))
-
 
         assert_that( is_rule_matching(on=self.admin, action="masquerade", for_=self.rep), is_(True))
         assert_that( is_rule_matching(on=self.customer, action="masquerade", for_=self.rep), is_(True))
