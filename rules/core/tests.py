@@ -89,3 +89,6 @@ class TestRules(TestCase):
     def test_get_group_by_name(self):
        assert_that( Group.get_by_name("customergroup") == CustomerGroup)
 
+    def test_model_group(self):
+       assert_that( Group.get_groups(self.product_C), is_(['group_product_model']))
+
