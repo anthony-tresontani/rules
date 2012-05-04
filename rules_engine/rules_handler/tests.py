@@ -3,14 +3,14 @@ from django.test import TestCase
 from hamcrest import *
 from django_dynamic_fixture import get
 
-from core.rules import ApplyRules, IsRuleMatching
+from rules_handler.rules import ApplyRules, IsRuleMatching
 
 from sample.models import *
 from sample.rules import *
 from sample.groups import *
 
 from django.contrib.auth.models import User
-from core.models import Group, ACL
+from rules_handler.models import Group, ACL
 
 class TestRules(TestCase):
 

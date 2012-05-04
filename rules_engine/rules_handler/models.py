@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth.models import Permission
 from django.db import models
 from django.db.models.query import QuerySet
@@ -5,6 +7,8 @@ from django.db.models.signals import class_prepared
 from django.dispatch import receiver
 
 from peak.rules import abstract, when
+
+logger = logging.getLogger("rules")
 
 # Create your models here.
 class Group(object):
@@ -52,11 +56,13 @@ def create_group_class(cls):
 
 @receiver(class_prepared)
 def create_group_model(sender, **kwargs):
+    logging.debug("Receive prepared signal for %s", sender)
     if isinstance(sender, type):
 	class_name = get_model_group_name(sender.__name__)
 	if not Group.get_by_name(class_name):
             group = create_group_class(sender)
 	    Group.register(group)
+            logger.info("Creating and registering automatic group %s" , class_name)
 
 
 @abstract

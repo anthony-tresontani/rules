@@ -118,7 +118,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django_nose',
 
-    'core',
+    'rules_handler',
 
     'sample',
     # Uncomment the next line to enable the admin:
@@ -135,6 +135,11 @@ INSTALLED_APPS = (
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters':{
+        'simple': {
+            'format': '%(levelname)s %(funcName)s | %(message)s'
+        },
+    },
     'handlers': {
         'mail_admins': {
             'level': 'ERROR',
@@ -143,6 +148,7 @@ LOGGING = {
     'console': {
             'level':'DEBUG',
             'class':'logging.StreamHandler',
+            'formatter': 'simple',
             'strm' if int(sys.version[2:3]) < 7 else 'stream': sys.stdout ,
         }
     },
@@ -159,7 +165,7 @@ LOGGING = {
         },
         'rules': {
             'handlers': ['console'],
-            'level':'DEBUG',
+            'level':'INFO',
             'propagate': False,
         },
     }

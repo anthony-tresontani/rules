@@ -1,5 +1,5 @@
 # Create your models here.
-from core.models import Group
+from rules_handler.models import Group
 
 class CustomerGroup(Group):
     name = "customergroup"

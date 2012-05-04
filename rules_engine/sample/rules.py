@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.db.models.query_utils import Q
-from core.models import Rule, Group
+from rules_handler.models import Rule, Group
 from sample.groups import CustomerGroup
 from sample.models import Product
 

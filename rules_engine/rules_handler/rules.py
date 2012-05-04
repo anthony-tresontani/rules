@@ -1,7 +1,7 @@
 import logging
 
 from django.db.models.query_utils import Q
-from core.models import ACL, Group, Rule
+from rules_handler.models import ACL, Group, Rule
 
 
 logger = logging.getLogger("rules")
