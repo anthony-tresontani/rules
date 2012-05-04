@@ -64,10 +64,17 @@ def _apply_obj(cls, qs):
 
 class ValidateMetaClass(type):
     def __new__(meta, classname, bases, classDict):
-        for attr in classDict:
-             if attr.startswith("apply_") and callable(classDict[attr]) and not getattr(classDict[attr], "im_self", None):
-                 raise AttributeError("method %s of class %s should be a classmethod" % (attr, classname))
-        return type.__new__(meta, classname, bases, classDict)
+        cls = type.__new__(meta, classname, bases, classDict)
+        if classname != "Rule":
+	    for attr in classDict:
+		 if attr.startswith("apply_") and callable(classDict[attr]) and not getattr(classDict[attr], "im_self", None):
+		     raise AttributeError("method %s of class %s should be a classmethod" % (attr, classname))
+	    if not "name" in classDict:
+		raise AttributeError("Rule %s should have a name attribute" % classname)
+	    if not "group_name" in classDict:
+		raise AttributeError("Rule %s should have a group_name attribute" % classname)
+            cls.register(cls)
+        return cls
 
 
 class Rule(object):
@@ -78,10 +85,8 @@ class Rule(object):
         self.next = next_
 
     @classmethod
-    def register(cls, rule_class, type=ACL.ALLOW, action=None):
+    def register(cls, rule_class):
         cls.rules.add(rule_class)
-        if type == ACL.DENY:
-            ACL.objects.create(action=action, type=ACL.DENY, rule=rule_class.name)
 
     @classmethod
     def get_rule_names(cls):

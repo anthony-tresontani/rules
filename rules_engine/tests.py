@@ -16,8 +16,6 @@ class TestRules(TestCase):
     def setUp(self):
         Group.default = None
 
-        print "Group ID in test", id(Group)
-        print "Rule ID in test", id(Rule)
         self.customer = User.objects.create(username="customer")
         self.rep = User.objects.create(username="rep")
         self.admin = User.objects.create(username="admin")
@@ -26,11 +24,6 @@ class TestRules(TestCase):
         Group.register(CustomerGroup)
         Group.register(AdminGroup)
         Group.register(RepGroup)
-
-        Rule.register(CanSeeAnyProducts)
-        Rule.register(CanSeeCProducts, type=ACL.DENY, action="can_see")
-        Rule.register(CanMasquerade)
-        Rule.register(CanMasqueradeAsCustomer)
 
         ACL.objects.create(group="customergroup", rule="can_see_products", action="can_see", type=ACL.ALLOW)
         ACL.objects.create(group="admingroup", rule="can_see_C", action="can_see", type=ACL.DENY)
@@ -96,5 +89,5 @@ class TestRules(TestCase):
     def test_validating_subclass(self):
        with self.assertRaises(AttributeError):
            type("invalidRule", (Rule,), {"apply_obj": lambda x:x})
-       type("invalidRule", (Rule,), {"apply_obj": 10}) # Should not raise an exception
+       type("validRule", (Rule,), {"apply_obj": 10, "name": "name", "group_name": "group_name"}) # Should not raise an exception
 
