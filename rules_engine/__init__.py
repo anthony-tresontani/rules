@@ -51,12 +51,6 @@ def autodiscover():
             # (see #8245).
             site._registry = before_import_registry
 
-            # Decide whether to bubble up this error. If the app just
-            # doesn't have an admin module, we can ignore the error
-            # attempting to import it, otherwise we want it to bubble up.
-            if module_has_submodule(mod, 'rules'):
-                raise
-
     from django.conf import settings
     for app in settings.INSTALLED_APPS:
         import_file(app, "rules")

@@ -4,7 +4,6 @@ from peak.rules.core import abstract, when
 from django.dispatch.dispatcher import receiver
 from django.db.models.query import QuerySet
 
-
 from rules_engine.ACL.models import ACL
 
 logger = logging.getLogger("rules")
