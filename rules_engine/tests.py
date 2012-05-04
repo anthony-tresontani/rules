@@ -3,20 +3,21 @@ from django.test import TestCase
 from hamcrest import *
 from django_dynamic_fixture import get
 
-from rules_handler.rules import ApplyRules, IsRuleMatching
+from rules_engine.rules import ApplyRules, IsRuleMatching
 
-from sample.models import *
-from sample.rules import *
-from sample.groups import *
+from rules_engine.sample.models import *
+from rules_engine.sample.rules import *
+from rules_engine.sample.groups import *
 
-from django.contrib.auth.models import User
-from rules_handler.models import Group, ACL
+from rules_engine.rules import Group, ACL
 
 class TestRules(TestCase):
 
     def setUp(self):
         Group.default = None
 
+        print "Group ID in test", id(Group)
+        print "Rule ID in test", id(Rule)
         self.customer = User.objects.create(username="customer")
         self.rep = User.objects.create(username="rep")
         self.admin = User.objects.create(username="admin")
@@ -83,8 +84,8 @@ class TestRules(TestCase):
         assert_that( AdminGroup.belong(self.admin), is_(True))
 
     def test_get_group(self):
-        assert_that( Group.get_groups(self.customer), is_(['customergroup']))
-        assert_that( Group.get_groups(self.admin), is_(['admingroup']))
+        assert_that( Group.get_groups(self.customer), has_item('customergroup'))
+        assert_that( Group.get_groups(self.admin), has_item('admingroup'))
 
     def test_get_group_by_name(self):
        assert_that( Group.get_by_name("customergroup") == CustomerGroup)

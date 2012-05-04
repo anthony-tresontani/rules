@@ -1,8 +1,7 @@
 from django.contrib.auth.models import User
 from django.db.models.query_utils import Q
-from rules_handler.models import Rule, Group
-from sample.groups import CustomerGroup
-from sample.models import Product
+from rules_engine.rules import Rule, Group
+from rules_engine.sample.models import Product
 
 class CanSeeCProducts(Rule):
     group_name="can_see"

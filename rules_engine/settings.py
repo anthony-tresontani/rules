@@ -118,7 +118,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django_nose',
 
-    'rules_handler',
+    'ACL',
 
     'sample',
     # Uncomment the next line to enable the admin:
