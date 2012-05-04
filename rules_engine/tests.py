@@ -21,10 +21,6 @@ class TestRules(TestCase):
         self.admin = User.objects.create(username="admin")
         self.anonymous = User.objects.create(username="anonymous")
 
-        Group.register(CustomerGroup)
-        Group.register(AdminGroup)
-        Group.register(RepGroup)
-
         ACL.objects.create(group="customergroup", rule="can_see_products", action="can_see", type=ACL.ALLOW)
         ACL.objects.create(group="admingroup", rule="can_see_C", action="can_see", type=ACL.DENY)
         ACL.objects.create(group="admingroup", rule="can_see_products", action="can_see", type=ACL.ALLOW)
@@ -81,7 +77,7 @@ class TestRules(TestCase):
         assert_that( Group.get_groups(self.admin), has_item('admingroup'))
 
     def test_get_group_by_name(self):
-       assert_that( Group.get_by_name("customergroup") == CustomerGroup)
+       assert_that( Group.get_by_name("customergroup"), not_none())
 
     def test_model_group(self):
        assert_that( Group.get_groups(self.product_C), is_(['group_product_model']))

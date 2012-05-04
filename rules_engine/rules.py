@@ -13,9 +13,16 @@ def get_permissions(for_, action, groups):
     deny_permissions = ACL.objects.filter(action=action, type=ACL.DENY)
     return apply_permissions, deny_permissions
 
+class GroupMetaClass(type):
+    def __new__(meta, classname, bases, classDict):
+        cls = type.__new__(meta, classname, bases, classDict)
+        if classname != "Group":
+            cls.register(cls)
+        return cls
 
 # Create your models here.
 class Group(object):
+    __metaclass__ = GroupMetaClass
     groups = set([])
 
     @classmethod
@@ -62,7 +69,7 @@ def _apply_qs(cls, qs):
 def _apply_obj(cls, qs):
     return cls.apply_obj(qs)
 
-class ValidateMetaClass(type):
+class RuleMetaClass(type):
     def __new__(meta, classname, bases, classDict):
         cls = type.__new__(meta, classname, bases, classDict)
         if classname != "Rule":
@@ -78,7 +85,7 @@ class ValidateMetaClass(type):
 
 
 class Rule(object):
-    __metaclass__ = ValidateMetaClass
+    __metaclass__ = RuleMetaClass
     rules = set([])
 
     def __init__(self, next_=None):
