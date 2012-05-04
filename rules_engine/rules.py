@@ -62,8 +62,16 @@ def _apply_qs(cls, qs):
 def _apply_obj(cls, qs):
     return cls.apply_obj(qs)
 
+class ValidateMetaClass(type):
+    def __new__(meta, classname, bases, classDict):
+        for attr in classDict:
+             if attr.startswith("apply_") and callable(classDict[attr]) and not getattr(classDict[attr], "im_self", None):
+                 raise AttributeError("method %s of class %s should be a classmethod" % (attr, classname))
+        return type.__new__(meta, classname, bases, classDict)
+
 
 class Rule(object):
+    __metaclass__ = ValidateMetaClass
     rules = set([])
 
     def __init__(self, next_=None):

@@ -93,3 +93,8 @@ class TestRules(TestCase):
     def test_model_group(self):
        assert_that( Group.get_groups(self.product_C), is_(['group_product_model']))
 
+    def test_validating_subclass(self):
+       with self.assertRaises(AttributeError):
+           type("invalidRule", (Rule,), {"apply_obj": lambda x:x})
+       type("invalidRule", (Rule,), {"apply_obj": 10}) # Should not raise an exception
+
