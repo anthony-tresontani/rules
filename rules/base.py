@@ -2,13 +2,13 @@ import logging
 from peak.rules.core import abstract, when
 from django.db.models.query import QuerySet
 
-from rules.models import ACL
+from rules.models import Rule
 
 logger = logging.getLogger("rules")
 
 def get_permissions(for_, action, groups):
-    apply_permissions = ACL.objects.filter(group__in=groups, action=action, type=ACL.ALLOW)
-    deny_permissions = ACL.objects.filter(action=action, type=ACL.DENY)
+    apply_permissions = Rule.objects.filter(group__in=groups, action=action, type=Rule.ALLOW)
+    deny_permissions = Rule.objects.filter(action=action, type=Rule.DENY)
     return apply_permissions, deny_permissions
 
 
@@ -68,23 +68,23 @@ def _apply_qs(cls, qs):
 def _apply_obj(cls, qs):
     return cls.apply_obj(qs)
 
-class RuleMetaClass(type):
+class PredicateMetaClass(type):
     def __new__(meta, classname, bases, classDict):
         cls = type.__new__(meta, classname, bases, classDict)
-        if classname != "Rule":
-	    for attr in classDict:
-		 if attr.startswith("apply_") and callable(classDict[attr]) and not getattr(classDict[attr], "im_self", None):
-		     raise AttributeError("method %s of class %s should be a classmethod" % (attr, classname))
-	    if not "name" in classDict:
-		raise AttributeError("Rule %s should have a name attribute" % classname)
-	    if not "group_name" in classDict:
-		raise AttributeError("Rule %s should have a group_name attribute" % classname)
+        if classname != "Predicate":
+            for attr in classDict:
+                if attr.startswith("apply_") and callable(classDict[attr]) and not getattr(classDict[attr], "im_self", None):
+                    raise AttributeError("method %s of class %s should be a classmethod" % (attr, classname))
+            if not "name" in classDict:
+                raise AttributeError("Rule %s should have a name attribute" % classname)
+            if not "group_name" in classDict:
+                raise AttributeError("Rule %s should have a group_name attribute" % classname)
             cls.register(cls)
         return cls
 
 
-class Rule(object):
-    __metaclass__ = RuleMetaClass
+class Predicate(object):
+    __metaclass__ = PredicateMetaClass
     rules = set([])
 
     def __init__(self, next_=None):
@@ -163,7 +163,7 @@ class ApplyRules(RuleHandler):
         return self.model.objects.none()
 
     def apply_perm(self, perm, method):
-        rule = Rule.get_by_name(perm.rule)
+        rule = Predicate.get_by_name(perm.rule)
         filters = rule.apply(obj=self.on)
         filter_method = getattr(self.model.objects, method)
         if isinstance(filters, dict):
@@ -178,7 +178,7 @@ class ApplyRules(RuleHandler):
             on = self.apply_perm(permission, method="filter")
 
         for permission in self.deny_permissions:
-            if not ACL.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
+            if not Rule.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
                 on = self.apply_perm(permission, method="exclude")
         return on
 
@@ -191,7 +191,7 @@ class IsRuleMatching(RuleHandler):
 
     def _check(self):
         for permission in self.apply_permissions:
-            rule = Rule.get_by_name(permission.rule)
+            rule = Predicate.get_by_name(permission.rule)
             result = rule.apply(obj=self.on)
             if not result:
                 logger.info("Allow rule %s failed", rule)
@@ -199,8 +199,8 @@ class IsRuleMatching(RuleHandler):
                 return False
 
         for permission in self.deny_permissions:
-            if not ACL.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
-                rule = Rule.get_by_name(permission.rule)
+            if not Rule.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
+                rule = Predicate.get_by_name(permission.rule)
                 exclude = rule.apply(obj=self.on)
                 if exclude:
                     logger.info("Deny rule %s failed", rule)

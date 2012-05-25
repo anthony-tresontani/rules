@@ -3,10 +3,12 @@ from django.test import TestCase
 from hamcrest import *
 from django_dynamic_fixture import get
 
-from rules.base import ApplyRules, IsRuleMatching, Group, ACL
+from rules.base import ApplyRules, IsRuleMatching, Group
+from rules.models import Rule
 from sample.models import *
 from sample.acl import *
 from sample.groups import *
+
 
 class TestRules(TestCase):
 
@@ -18,12 +20,12 @@ class TestRules(TestCase):
         self.admin = User.objects.create(username="admin")
         self.anonymous = User.objects.create(username="anonymous")
 
-        ACL.objects.create(group="customergroup", rule="can_see_products", action="can_see", type=ACL.ALLOW)
-        ACL.objects.create(group="admingroup", rule="can_see_C", action="can_see", type=ACL.DENY)
-        ACL.objects.create(group="admingroup", rule="can_see_products", action="can_see", type=ACL.ALLOW)
+        Rule.objects.create(group="customergroup", rule="can_see_products", action="can_see", type=Rule.ALLOW)
+        Rule.objects.create(group="admingroup", rule="can_see_C", action="can_see", type=Rule.DENY)
+        Rule.objects.create(group="admingroup", rule="can_see_products", action="can_see", type=Rule.ALLOW)
 
-        ACL.objects.create(group="rep", rule="can_masquerade_as_any", action="masquerade", type=ACL.ALLOW)
-        ACL.objects.create(group="admingroup", rule="can_masquerade_as_customer", action="masquerade", type=ACL.ALLOW)
+        Rule.objects.create(group="rep", rule="can_masquerade_as_any", action="masquerade", type=Rule.ALLOW)
+        Rule.objects.create(group="admingroup", rule="can_masquerade_as_customer", action="masquerade", type=Rule.ALLOW)
 
         for product_type in ["A", "B", "C"]:
             get(Product, product_type=product_type)
@@ -81,6 +83,6 @@ class TestRules(TestCase):
 
     def test_validating_subclass(self):
        with self.assertRaises(AttributeError):
-           type("invalidRule", (Rule,), {"apply_obj": lambda x:x})
-       type("validRule", (Rule,), {"apply_obj": 10, "name": "name", "group_name": "group_name"}) # Should not raise an exception
+           type("invalidRule", (Predicate,), {"apply_obj": lambda x:x})
+       type("validRule", (Predicate,), {"apply_obj": 10, "name": "name", "group_name": "group_name"}) # Should not raise an exception
 
