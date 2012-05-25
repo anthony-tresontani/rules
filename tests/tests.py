@@ -4,9 +4,9 @@ from hamcrest import *
 from django_dynamic_fixture import get
 
 from rules.base import ApplyRules, IsRuleMatching, Group, ACL
-from rules.sample.models import *
-from rules.sample.acl import *
-from rules.sample.groups import *
+from sample.models import *
+from sample.acl import *
+from sample.groups import *
 
 class TestRules(TestCase):
 
