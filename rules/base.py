@@ -2,7 +2,7 @@ import logging
 from peak.rules.core import abstract, when
 from django.db.models.query import QuerySet
 
-from rules.ACL.models import ACL
+from rules.models import ACL
 
 logger = logging.getLogger("rules")
 

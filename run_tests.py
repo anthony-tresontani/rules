@@ -18,7 +18,7 @@ if not settings.configured:
                 'django.contrib.sessions',
                 'django.contrib.sites',
                 'django.contrib.flatpages',
-                'rules.ACL',
+                'rules',
                 'tests.sample',
                 ],
             ROOT_URLCONF='tests.urls',
