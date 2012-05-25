@@ -1,9 +1,11 @@
 from django.contrib.auth.models import User
 from django.db.models.query_utils import Q
-from rules_engine.rules import Rule, Group
-from rules_engine.sample.models import Product
 
-class CanSeeCProducts(Rule):
+from rules.base import Predicate, Group
+from tests.sample.models import Product
+
+
+class CanSeeCProducts(Predicate):
     group_name="can_see"
     name = "can_see_C"
     message = "Cannot see C product"
@@ -17,7 +19,7 @@ class CanSeeCProducts(Rule):
         return obj.product_type == "C"
 
 
-class CanSeeAnyProducts(Rule):
+class CanSeeAnyProducts(Predicate):
     group_name="can_see"
     name="can_see_products"
 
@@ -29,7 +31,7 @@ class CanSeeAnyProducts(Rule):
     def apply_obj(cls, obj):
         return isinstance(obj, Product)
 
-class DeletedProductOutOfStock(Rule):
+class DeletedProductOutOfStock(Predicate):
     group_name = "can_see"
     name = "deleted_product_out_of_stock"
 
@@ -42,7 +44,7 @@ class DeletedProductOutOfStock(Rule):
         return obj.stock == 0 and obj.status == 1
 
 
-class CanMasquerade(Rule):
+class CanMasquerade(Predicate):
     group_name = "masquerade"
     name = "can_masquerade_as_any" 
     message = "Cant masquerade"
@@ -51,7 +53,7 @@ class CanMasquerade(Rule):
     def apply_obj(cls, obj):
         return True
 
-class CanMasqueradeAsCustomer(Rule):
+class CanMasqueradeAsCustomer(Predicate):
     group_name = "masquerade"
     name = "can_masquerade_as_customer" 
     message = "Cannot masquerade as a customer" 

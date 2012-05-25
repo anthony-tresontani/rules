@@ -5,6 +5,6 @@ setup(name='django-rules',
       description='Dynamic rule handling',
       author='Anthony Tresontani',
       author_email='dev.tresontani@gmail.com',
-      packages=['rules_engine', 'rules_engine.ACL'],
+      packages=['rules'],
       install_requires = ['PEAK-Rules==0.5a1.dev-r2707']
      )

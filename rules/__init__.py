@@ -2,7 +2,7 @@ import logging
 from django.contrib.admin.sites import site
 from django.db.models.signals import class_prepared
 from django.dispatch.dispatcher import receiver
-from rules_engine.rules import Group
+from rules.base import Group
 
 logger = logging.getLogger("rules")
 
