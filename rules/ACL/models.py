@@ -15,12 +15,10 @@ class ACL(models.Model):
     type = models.CharField(max_length=10, choices=action_type, null=False, blank=False)
 
     def save(self, *args, **kwargs):
-        from rules_engine.rules import Group, Rule
+        from rules.base import Group, Rule
         if self.group not in Group.get_group_names() and self.group:
-            print "Group ID", id(Group)
             raise ValueError("Group %s has not been registered" % self.group)
         if self.rule not in Rule.get_rule_names() and self.rule:
-            print "Rule ID", id(Rule)
             raise ValueError("Rule %s has not been registered" % self.rule)
         super(ACL, self).save(*args, **kwargs)
 

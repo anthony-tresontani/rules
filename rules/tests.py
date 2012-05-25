@@ -3,13 +3,10 @@ from django.test import TestCase
 from hamcrest import *
 from django_dynamic_fixture import get
 
-from rules_engine.rules import ApplyRules, IsRuleMatching
-
-from rules_engine.sample.models import *
-from rules_engine.sample.rules import *
-from rules_engine.sample.groups import *
-
-from rules_engine.rules import Group, ACL
+from rules.base import ApplyRules, IsRuleMatching, Group, ACL
+from rules.sample.models import *
+from rules.sample.acl import *
+from rules.sample.groups import *
 
 class TestRules(TestCase):
 

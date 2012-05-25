@@ -1,10 +1,8 @@
 import logging
-from django.db.models.signals import class_prepared
 from peak.rules.core import abstract, when
-from django.dispatch.dispatcher import receiver
 from django.db.models.query import QuerySet
 
-from rules_engine.ACL.models import ACL
+from rules.ACL.models import ACL
 
 logger = logging.getLogger("rules")
 
@@ -13,6 +11,7 @@ def get_permissions(for_, action, groups):
     deny_permissions = ACL.objects.filter(action=action, type=ACL.DENY)
     return apply_permissions, deny_permissions
 
+
 class GroupMetaClass(type):
     def __new__(meta, classname, bases, classDict):
         cls = type.__new__(meta, classname, bases, classDict)
@@ -20,7 +19,7 @@ class GroupMetaClass(type):
             cls.register(cls)
         return cls
 
-# Create your models here.
+
 class Group(object):
     __metaclass__ = GroupMetaClass
     groups = set([])

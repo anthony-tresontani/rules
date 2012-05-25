@@ -1,4 +1,0 @@
-- You can have rule not applying to any group.
-  ex: Deleted product without stock should not be visible (for anybody)
-
-- A permission is an exemption for a rule to be applied to a group
