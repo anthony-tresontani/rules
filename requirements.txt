@@ -1,0 +1,5 @@
+django
+peak-rules
+django-nose
+pyhamcrest
+django_dynamic_fixture
