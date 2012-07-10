@@ -28,7 +28,7 @@ class TestRules(TestCase):
         ACL.objects.create(group="rep", rule="can_masquerade_as_any", action="masquerade", type=ACL.ALLOW)
         ACL.objects.create(group="admingroup", rule="can_masquerade_as_customer", action="masquerade", type=ACL.ALLOW)
 
-        for product_type in ["A", "B", "C"]:
+        for product_type in ["A", "B", "C", "D"]:
             get(Product, product_type=product_type)
 
         self.product_C = Product.objects.get(product_type="C")

@@ -53,7 +53,7 @@ def autodiscover():
 
     from django.conf import settings
     for app in settings.INSTALLED_APPS:
-        import_file(app, "rules")
         import_file(app, "groups")
+        import_file(app, "rules")
 
 autodiscover()

@@ -1,11 +1,15 @@
 import logging
 
 from django.db import models
+from django.db.models.signals import post_syncdb
+from django.dispatch.dispatcher import receiver
 
 logger = logging.getLogger("rules")
 
 
 class ACL(models.Model):
+    deferred_ACL = []
+
     ALLOW, DENY = "ALLOW", "DENY"
     action_type = (("Allow", ALLOW), ("Deny", DENY))
 
@@ -13,17 +17,29 @@ class ACL(models.Model):
     group = models.CharField(max_length=80)
     rule = models.CharField(max_length=80)
     type = models.CharField(max_length=10, choices=action_type, null=False, blank=False)
+    auto = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         from rules_engine.rules import Group, Rule
-        if self.group not in Group.get_group_names() and self.group:
-            print "Group ID", id(Group)
-            raise ValueError("Group %s has not been registered" % self.group)
-        if self.rule not in Rule.get_rule_names() and self.rule:
-            print "Rule ID", id(Rule)
-            raise ValueError("Rule %s has not been registered" % self.rule)
+        if not self.auto:
+            if self.group not in Group.get_group_names() and self.group:
+                print "Group ID", id(Group)
+                raise ValueError("Group %s has not been registered" % self.group)
+            if self.rule not in Rule.get_rule_names() and self.rule:
+                print "Rule ID", id(Rule)
+                raise ValueError("Rule %s has not been registered" % self.rule)
         super(ACL, self).save(*args, **kwargs)
 
     def __repr__(self):
         return "%s - %s" % (self.type, self.rule)
+
+    @classmethod
+    def deferred(self, **kwargs):
+        self.deferred_ACL.append(kwargs)
+
+@receiver(post_syncdb, )
+def create_deferred_ACL(sender, **kwargs):
+    print "GET IT" * 12
+    for acl in ACL.deferred_ACL:
+        ACL.objects.create(**acl)
 

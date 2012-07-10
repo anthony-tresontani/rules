@@ -1,7 +1,5 @@
 import logging
-from django.db.models.signals import class_prepared
 from peak.rules.core import abstract, when
-from django.dispatch.dispatcher import receiver
 from django.db.models.query import QuerySet
 
 from rules_engine.ACL.models import ACL
@@ -12,6 +10,7 @@ def get_permissions(for_, action, groups):
     apply_permissions = ACL.objects.filter(group__in=groups, action=action, type=ACL.ALLOW)
     deny_permissions = ACL.objects.filter(action=action, type=ACL.DENY)
     return apply_permissions, deny_permissions
+
 
 class GroupMetaClass(type):
     def __new__(meta, classname, bases, classDict):
@@ -69,18 +68,23 @@ def _apply_qs(cls, qs):
 def _apply_obj(cls, qs):
     return cls.apply_obj(qs)
 
+
 class RuleMetaClass(type):
     def __new__(meta, classname, bases, classDict):
         cls = type.__new__(meta, classname, bases, classDict)
         if classname != "Rule":
-	    for attr in classDict:
-		 if attr.startswith("apply_") and callable(classDict[attr]) and not getattr(classDict[attr], "im_self", None):
-		     raise AttributeError("method %s of class %s should be a classmethod" % (attr, classname))
-	    if not "name" in classDict:
-		raise AttributeError("Rule %s should have a name attribute" % classname)
-	    if not "group_name" in classDict:
-		raise AttributeError("Rule %s should have a group_name attribute" % classname)
+            for attr in classDict:
+                if attr.startswith("apply_") and callable(classDict[attr]) and not getattr(classDict[attr], "im_self",
+                    None):
+                    raise AttributeError("method %s of class %s should be a classmethod" % (attr, classname))
+            if not "name" in classDict:
+                raise AttributeError("Rule %s should have a name attribute" % classname)
+            if not "group_name" in classDict:
+                raise AttributeError("Rule %s should have a group_name attribute" % classname)
             cls.register(cls)
+
+            for group, type_ in getattr(cls, "auto_on_groups", []):
+                ACL.deferred(group=group, rule=cls.name, action=cls.group_name, type=type_, auto=True)
         return cls
 
 
@@ -104,6 +108,7 @@ class Rule(object):
         for rule in cls.rules:
             if rule.name == name:
                 return rule
+
     @classmethod
     def get_message(cls):
         if hasattr(cls, "message"):
@@ -125,7 +130,6 @@ class Rule(object):
 
     def check(self, obj):
         return _apply(self, obj)
-
 
 
 class RuleHandler(object):
@@ -185,7 +189,6 @@ class ApplyRules(RuleHandler):
 
 
 class IsRuleMatching(RuleHandler):
-
     def __init__(self, on, action, for_):
         super(IsRuleMatching, self).__init__(on, action, for_)
         self.reason = None

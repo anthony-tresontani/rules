@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.db.models.query_utils import Q
 from rules_engine.rules import Rule, Group
 from rules_engine.sample.models import Product
+from rules_engine.ACL.models import ACL
 
 class CanSeeCProducts(Rule):
     group_name="can_see"
@@ -15,6 +16,20 @@ class CanSeeCProducts(Rule):
     @classmethod
     def apply_obj(cls, obj):
         return obj.product_type == "C"
+
+class CanSeeDProducts(Rule):
+    group_name="can_see"
+    name = "can_see_D"
+    message = "Nobody can see D product"
+    auto_on_groups = (("group_user_model", ACL.DENY),)
+
+    @classmethod
+    def apply_qs(cls, qs):
+        return Q(product_type="D")
+
+    @classmethod
+    def apply_obj(cls, obj):
+        return obj.product_type == "D"
 
 
 class CanSeeAnyProducts(Rule):
