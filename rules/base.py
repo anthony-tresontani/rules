@@ -1,14 +1,34 @@
 import logging
 from peak.rules.core import abstract, when
-from django.db.models.query import QuerySet
+from django.db.models.query import QuerySet, Q
 
-from rules_engine.ACL.models import ACL
+from rules.models import Rule
 
 logger = logging.getLogger("rules")
 
-def get_permissions(for_, action, groups):
-    apply_permissions = ACL.objects.filter(group__in=groups, action=action, type=ACL.ALLOW)
-    deny_permissions = ACL.objects.filter(action=action, type=ACL.DENY)
+def get_permissions(action, groups):
+    logger.info("All rules for action '%s':", action)
+    for rule in Rule.objects.filter(action=action):
+        logger.info("    %s", rule)
+
+    apply_permissions = Rule.objects.filter(action=action, deny=False)
+    apply_permissions= apply_permissions.filter(groups__name__in=groups, exclusive=False) | apply_permissions.filter(exclusive=True).exclude(groups__name__in=groups)
+
+    deny_permissions = Rule.objects.filter(action=action, deny=True)
+    inclusive_deny_permissions = deny_permissions.filter(groups__name__in=groups, exclusive=False)
+    exclusive_deny_permissions =  deny_permissions.filter(exclusive=True).exclude(groups__name__in=groups)
+    deny_for_all = deny_permissions.filter(groups=None, exclusive=True) 
+    deny_permissions = inclusive_deny_permissions | exclusive_deny_permissions | deny_for_all
+
+    # Remove Deny rule if an apply rule matches
+    for permission in deny_permissions:    
+        if permission.groups.exists():
+            counter_exists = apply_permissions.filter(predicate=permission.predicate, action=permission.action, exclusive=permission.exclusive).exists()
+        else:
+            counter_exists = apply_permissions.filter(predicate=permission.predicate, action=permission.action).exists()
+        if counter_exists:
+            logger.info("Exclude deny rule as an apply has been found")
+            deny_permissions = deny_permissions.exclude(id=permission.id)
     return apply_permissions, deny_permissions
 
 
@@ -19,13 +39,14 @@ class GroupMetaClass(type):
             cls.register(cls)
         return cls
 
-# Create your models here.
+
 class Group(object):
     __metaclass__ = GroupMetaClass
     groups = set([])
 
     @classmethod
     def register(cls, group_class):
+        logger.info("GROUP \'%s\' registered", group_class.name)
         cls.groups.add(group_class)
 
     @classmethod
@@ -45,7 +66,9 @@ class Group(object):
                     groups_in.append(group)
             except AttributeError, e:
                 pass
-        return [group.name for group in groups_in]
+        groups_names = [group.name for group in groups_in]
+        logger.info("Obj %s belong to %s", obj, groups_names)
+        return groups_names
 
     @classmethod
     def get_by_name(cls, name):
@@ -68,28 +91,23 @@ def _apply_qs(cls, qs):
 def _apply_obj(cls, qs):
     return cls.apply_obj(qs)
 
-
-class RuleMetaClass(type):
+class PredicateMetaClass(type):
     def __new__(meta, classname, bases, classDict):
         cls = type.__new__(meta, classname, bases, classDict)
-        if classname != "Rule":
+        if classname != "Predicate":
             for attr in classDict:
-                if attr.startswith("apply_") and callable(classDict[attr]) and not getattr(classDict[attr], "im_self",
-                    None):
+                if attr.startswith("apply_") and callable(classDict[attr]) and not getattr(classDict[attr], "im_self", None):
                     raise AttributeError("method %s of class %s should be a classmethod" % (attr, classname))
             if not "name" in classDict:
                 raise AttributeError("Rule %s should have a name attribute" % classname)
-            if not "group_name" in classDict:
-                raise AttributeError("Rule %s should have a group_name attribute" % classname)
+            #if not "group_name" in classDict:
+            #    raise AttributeError("Rule %s should have a group_name attribute" % classname)
             cls.register(cls)
-
-            for group, type_ in getattr(cls, "auto_on_groups", []):
-                ACL.deferred(group=group, rule=cls.name, action=cls.group_name, type=type_, auto=True)
         return cls
 
 
-class Rule(object):
-    __metaclass__ = RuleMetaClass
+class Predicate(object):
+    __metaclass__ = PredicateMetaClass
     rules = set([])
 
     def __init__(self, next_=None):
@@ -140,7 +158,8 @@ class RuleHandler(object):
         self.action = action
         self.for_ = for_
         self.groups = Group.get_groups(self.for_)
-        self.apply_permissions, self.deny_permissions = get_permissions(self.for_, self.action, self.groups)
+        logger.info("GROUPS %s", self.groups)
+        self.apply_permissions, self.deny_permissions = get_permissions(self.action, self.groups)
 
     def no_perm_value(self):
         if hasattr(self, "get_no_permission_value"):
@@ -149,10 +168,10 @@ class RuleHandler(object):
             return self.no_permission_value
 
     def check(self):
-        if not self.apply_permissions:
-            logger.info("No permission found")
-            self.reason = "No permission found"
-            return self.no_perm_value()
+        #if not self.apply_permissions:
+        #    logger.info("No permission found")
+        #    self.reason = "No permission found"
+        #    return self.no_perm_value()
         return self._check()
 
     def _check(self):
@@ -168,24 +187,32 @@ class ApplyRules(RuleHandler):
         return self.model.objects.none()
 
     def apply_perm(self, perm, method):
-        rule = Rule.get_by_name(perm.rule)
+        rule = Predicate.get_by_name(perm.predicate)
         filters = rule.apply(obj=self.on)
-        filter_method = getattr(self.model.objects, method)
+        filter_method = getattr(self.on, method)
         if isinstance(filters, dict):
-            on = filter_method(**filters)
-        else:
+            on = filter_method(**filters) # == self.on.filter(..)
+        else:                             # or self.on.exclude(..)
             on = filter_method(filters)
         return on
 
     def _check(self):
         on = None
+        logger.info("-"*8 + "CHECKING RULES" + "-"*8)
+        logger.info("   Rules applied on %d objects: %s", len(self.on), self.on)
+        logger.info("   Permissions to apply: %s", self.apply_permissions)
         for permission in self.apply_permissions:
-            on = self.apply_perm(permission, method="filter")
+            self.on = self.apply_perm(permission, method="filter")
+            logger.info("        After filter %s: %s", permission, self.on)
 
+        logger.info("   Permissions to deny: %s", self.deny_permissions)
         for permission in self.deny_permissions:
-            if not ACL.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
-                on = self.apply_perm(permission, method="exclude")
-        return on
+        #    if not Rule.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
+                self.on = self.apply_perm(permission, method="exclude")
+                logger.info("        After filter: %s", self.on)
+        logger.info("   %d allowed objects: %s", len(self.on), self.on)
+        logger.info("-"*8 + "RULES CHECKED" + "-"*8)
+        return self.on
 
 
 class IsRuleMatching(RuleHandler):
@@ -194,21 +221,28 @@ class IsRuleMatching(RuleHandler):
         self.reason = None
 
     def _check(self):
+        logger.info("-"*8 + "CHECKING RULES" + "-"*8)
+        logger.info("    Rules applied on %s", self.on)
+        logger.info("    Permissions to apply: %s", self.apply_permissions)
+        result = True
         for permission in self.apply_permissions:
-            rule = Rule.get_by_name(permission.rule)
+            rule = Predicate.get_by_name(permission.predicate)
             result = rule.apply(obj=self.on)
             if not result:
-                logger.info("Allow rule %s failed", rule)
+                logger.info("        rule '%s' failed", rule)
                 self.reason = rule.get_message()
                 return False
 
+        logger.info("    Permissions to deny: %s", self.deny_permissions)
         for permission in self.deny_permissions:
-            if not ACL.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
-                rule = Rule.get_by_name(permission.rule)
+#            if not Rule.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
+                rule = Predicate.get_by_name(permission.predicate)
                 exclude = rule.apply(obj=self.on)
                 if exclude:
-                    logger.info("Deny rule %s failed", rule)
+                    logger.info("        rule '%s' failed", permission)
                     self.reason = rule.get_message()
                     return False
+        logger.info("    Return %s", result)
+        logger.info("-"*8 + "RULES CHECKED" + "-"*8)
         return result
 

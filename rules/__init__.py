@@ -2,7 +2,7 @@ import logging
 from django.contrib.admin.sites import site
 from django.db.models.signals import class_prepared
 from django.dispatch.dispatcher import receiver
-from rules_engine.rules import Group
+from rules.base import Group
 
 logger = logging.getLogger("rules")
 
@@ -25,7 +25,6 @@ def create_group_model(sender, **kwargs):
         if not Group.get_by_name(class_name):
             group = create_group_class(sender)
             Group.register(group)
-            logger.info("Creating and registering automatic group %s" , class_name)
 
 
 def autodiscover():

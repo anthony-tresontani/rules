@@ -1,12 +1,13 @@
 from django.contrib.auth.models import User
 from django.db.models.query_utils import Q
-from rules_engine.rules import Rule, Group
-from rules_engine.sample.models import Product
-from rules_engine.ACL.models import ACL
+from rules.models import Rule
 
-class CanSeeCProducts(Rule):
-    group_name="can_see"
-    name = "can_see_C"
+from rules.base import Predicate, Group
+from tests.sample.models import Product
+
+
+class CProducts(Predicate):
+    name = "C_products"
     message = "Cannot see C product"
 
     @classmethod
@@ -17,11 +18,10 @@ class CanSeeCProducts(Rule):
     def apply_obj(cls, obj):
         return obj.product_type == "C"
 
-class CanSeeDProducts(Rule):
-    group_name="can_see"
-    name = "can_see_D"
+class DProducts(Predicate):
+    name = "D_products"
     message = "Nobody can see D product"
-    auto_on_groups = (("group_user_model", ACL.DENY),)
+    auto_on_groups = (("customer_group","can_see", Rule.DENY),)
 
     @classmethod
     def apply_qs(cls, qs):
@@ -32,20 +32,18 @@ class CanSeeDProducts(Rule):
         return obj.product_type == "D"
 
 
-class CanSeeAnyProducts(Rule):
-    group_name="can_see"
-    name="can_see_products"
+class AllProducts(Predicate):
+    name="all_products"
 
     @classmethod
     def apply_qs(cls, qs):
-        return {}
+        return {'product_type__gte':"A"}
 
     @classmethod
     def apply_obj(cls, obj):
         return isinstance(obj, Product)
 
-class DeletedProductOutOfStock(Rule):
-    group_name = "can_see"
+class DeletedProductOutOfStock(Predicate):
     name = "deleted_product_out_of_stock"
 
     @classmethod
@@ -57,18 +55,16 @@ class DeletedProductOutOfStock(Rule):
         return obj.stock == 0 and obj.status == 1
 
 
-class CanMasquerade(Rule):
-    group_name = "masquerade"
-    name = "can_masquerade_as_any" 
+class AsAny(Predicate):
+    name = "as_any" 
     message = "Cant masquerade"
 
     @classmethod
     def apply_obj(cls, obj):
         return True
 
-class CanMasqueradeAsCustomer(Rule):
-    group_name = "masquerade"
-    name = "can_masquerade_as_customer" 
+class AsCustomer(Predicate):
+    name = "as_customer" 
     message = "Cannot masquerade as a customer" 
 
     @classmethod

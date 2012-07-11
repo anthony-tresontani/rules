@@ -1,5 +1,5 @@
-django
-peak-rules
-django-nose
-pyhamcrest
-django_dynamic_fixture
+Django==1.4
+PyHamcrest==1.6
+django-dynamic-fixture==1.6.3
+django-nose==1.1
+nose==1.1.2

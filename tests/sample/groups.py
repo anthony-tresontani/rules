@@ -1,5 +1,5 @@
 # Create your models here.
-from rules_engine.rules import Group
+from rules.base import Group
 
 class CustomerGroup(Group):
     name = "customergroup"
@@ -18,6 +18,11 @@ class AdminGroup(Group):
 
 class AnonymousGroup(Group):
     name = "anonymous"
+
+    @classmethod
+    def belong(cls, obj):
+        return obj.username == "anonymous"
+
 
 class RepGroup(Group):
     name = "rep"
