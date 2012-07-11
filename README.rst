@@ -30,8 +30,11 @@ In rules, you create a set of assumptions like your customer do.
 For example:
 
     Anonymous users can't see products of type A
+
     Customer can see standard products
+
     Sales representatives can see VIP products
+
     Admin can see everything
 
 to translate that in python code, you have to define:
