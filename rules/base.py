@@ -7,29 +7,26 @@ from rules.models import Rule
 logger = logging.getLogger("rules")
 
 def get_permissions(action, groups):
+    permissions = Rule.objects.filter(action=action)
     logger.info("All rules for action '%s':", action)
-    for rule in Rule.objects.filter(action=action):
+    for rule in permissions:
         logger.info("    %s", rule)
 
-    apply_permissions = Rule.objects.filter(action=action, deny=False)
-    apply_permissions= apply_permissions.filter(groups__name__in=groups, exclusive=False) | apply_permissions.filter(exclusive=True).exclude(groups__name__in=groups)
-
-    deny_permissions = Rule.objects.filter(action=action, deny=True)
-    inclusive_deny_permissions = deny_permissions.filter(groups__name__in=groups, exclusive=False)
-    exclusive_deny_permissions =  deny_permissions.filter(exclusive=True).exclude(groups__name__in=groups)
-    deny_for_all = deny_permissions.filter(groups=None, exclusive=True) 
-    deny_permissions = inclusive_deny_permissions | exclusive_deny_permissions | deny_for_all
+    inclusive_permissions = permissions.filter(groups__name__in=groups, exclusive=False)
+    exclusive_permissions =  permissions.filter(exclusive=True).exclude(groups__name__in=groups)
+    deny_for_all = permissions.filter(groups=None, exclusive=True) 
+    permissions = inclusive_permissions | exclusive_permissions | deny_for_all
 
     # Remove Deny rule if an apply rule matches
-    for permission in deny_permissions:    
+    for permission in permissions.filter(deny=True):    
         if permission.groups.exists():
-            counter_exists = apply_permissions.filter(predicate=permission.predicate, action=permission.action, exclusive=permission.exclusive).exists()
+            counter_exists = permissions.filter(deny=False, predicate=permission.predicate, action=permission.action, exclusive=permission.exclusive).exists()
         else:
-            counter_exists = apply_permissions.filter(predicate=permission.predicate, action=permission.action).exists()
+            counter_exists = permissions.filter(deny=False, predicate=permission.predicate, action=permission.action).exists()
         if counter_exists:
             logger.info("Exclude deny rule as an apply has been found")
-            deny_permissions = deny_permissions.exclude(id=permission.id)
-    return apply_permissions, deny_permissions
+            permissions = permissions.exclude(id=permission.id)
+    return permissions.order_by("deny")
 
 
 class GroupMetaClass(type):
@@ -159,24 +156,14 @@ class RuleHandler(object):
         self.for_ = for_
         self.groups = Group.get_groups(self.for_)
         logger.info("GROUPS %s", self.groups)
-        self.apply_permissions, self.deny_permissions = get_permissions(self.action, self.groups)
-
-    def no_perm_value(self):
-        if hasattr(self, "get_no_permission_value"):
-            return getattr(self, "get_no_permission_value")()
-        else:
-            return self.no_permission_value
+        self.permissions = get_permissions(self.action, self.groups)
 
     def check(self):
-        #if not self.apply_permissions:
-        #    logger.info("No permission found")
-        #    self.reason = "No permission found"
-        #    return self.no_perm_value()
         return self._check()
 
     def _check(self):
-        raise NotImplementedError()
-
+        logger.info("-"*8 + "CHECKING RULES" + "-"*8)
+        logger.info("   Permissions: %s", self.permissions)
 
 class ApplyRules(RuleHandler):
     def __init__(self, on, action, for_):
@@ -197,19 +184,14 @@ class ApplyRules(RuleHandler):
         return on
 
     def _check(self):
-        on = None
-        logger.info("-"*8 + "CHECKING RULES" + "-"*8)
+        super(ApplyRules, self)._check()
         logger.info("   Rules applied on %d objects: %s", len(self.on), self.on)
-        logger.info("   Permissions to apply: %s", self.apply_permissions)
-        for permission in self.apply_permissions:
-            self.on = self.apply_perm(permission, method="filter")
+        on = None
+        for permission in self.permissions:
+            method = "exclude" if permission.deny else "filter"
+            self.on = self.apply_perm(permission, method=method)
             logger.info("        After filter %s: %s", permission, self.on)
 
-        logger.info("   Permissions to deny: %s", self.deny_permissions)
-        for permission in self.deny_permissions:
-        #    if not Rule.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
-                self.on = self.apply_perm(permission, method="exclude")
-                logger.info("        After filter: %s", self.on)
         logger.info("   %d allowed objects: %s", len(self.on), self.on)
         logger.info("-"*8 + "RULES CHECKED" + "-"*8)
         return self.on
@@ -221,27 +203,18 @@ class IsRuleMatching(RuleHandler):
         self.reason = None
 
     def _check(self):
-        logger.info("-"*8 + "CHECKING RULES" + "-"*8)
-        logger.info("    Rules applied on %s", self.on)
-        logger.info("    Permissions to apply: %s", self.apply_permissions)
+        super(IsRuleMatching, self)._check()
+        logger.info("   Rules applied on objects: %s", self.on)
         result = True
-        for permission in self.apply_permissions:
+        for permission in self.permissions:
             rule = Predicate.get_by_name(permission.predicate)
             result = rule.apply(obj=self.on)
+            result = not result if permission.deny else result
             if not result:
                 logger.info("        rule '%s' failed", rule)
                 self.reason = rule.get_message()
                 return False
 
-        logger.info("    Permissions to deny: %s", self.deny_permissions)
-        for permission in self.deny_permissions:
-#            if not Rule.objects.filter(action=self.action, group__in=self.groups, rule=permission.rule).exists():
-                rule = Predicate.get_by_name(permission.predicate)
-                exclude = rule.apply(obj=self.on)
-                if exclude:
-                    logger.info("        rule '%s' failed", permission)
-                    self.reason = rule.get_message()
-                    return False
         logger.info("    Return %s", result)
         logger.info("-"*8 + "RULES CHECKED" + "-"*8)
         return result
