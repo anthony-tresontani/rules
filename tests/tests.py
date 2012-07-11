@@ -14,6 +14,9 @@ class TestSingleRule(TestCase):
     """
        By default, everything is allowed.
        That means adding a can_do rule does not do anything.
+
+       Rule:
+           admin users can see all products
     """
 
     def setUp(self):
@@ -38,6 +41,9 @@ class TestSingleRule(TestCase):
 class TestSingleNegativeRule(TestSingleRule):
     """
        Cant do rule remove any objects
+
+       Rule:
+           anonymous users can't see any products
     """
     def create_rules(self):
         Rule.objects.create_rule(groups_in="anonymous", cant_do="see_products", predicate="all_products")
@@ -51,6 +57,10 @@ class TestSingleNegativeRule(TestSingleRule):
 
 
 class TestSingleExcludeNegativeRule(TestSingleRule):
+    """
+       Rule:
+           users not admin can't see any products
+    """
     def create_rules(self):
         Rule.objects.create_rule(not_groups_in="admingroup", cant_do="see_products", predicate="all_products")
 
@@ -63,6 +73,11 @@ class TestSingleExcludeNegativeRule(TestSingleRule):
 
 
 class TestTwoRules(TestSingleRule):
+    """
+        Rules:
+            admin users can see all products
+            admin users can't see D products
+    """
     def setUp(self):
         super(TestTwoRules, self).setUp()
         self.customer = User.objects.create(username="customer")
