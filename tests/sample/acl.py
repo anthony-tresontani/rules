@@ -21,7 +21,6 @@ class CProducts(Predicate):
 class DProducts(Predicate):
     name = "D_products"
     message = "Nobody can see D product"
-    auto_on_groups = (("customer_group","can_see", Rule.DENY),)
 
     @classmethod
     def apply_qs(cls, qs):

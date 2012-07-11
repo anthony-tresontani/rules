@@ -2,8 +2,6 @@ import logging
 import collections
 
 from django.db import models
-from django.db.models.signals import post_syncdb
-from django.dispatch.dispatcher import receiver
 
 logger = logging.getLogger("rules")
 
@@ -18,29 +16,26 @@ class RuleManager(models.Manager):
         else:
             groups = []
             exclusive = True
-        self.create_rules_for_groups(groups, can_do, cant_do, predicate, exclusive=exclusive)
-
-    def create_rules_for_groups(self, groups, can_do, cant_do, predicate, exclusive):
         if not isinstance(groups, collections.Iterable) or isinstance(groups, str):
             groups =  [groups]
+
         if can_do:
-            rule, created = self.get_or_create(action=can_do, predicate=predicate, exclusive=exclusive)
+            deny = False
+            action = can_do
         elif cant_do:
-            rule, created = self.get_or_create(action=cant_do, predicate=predicate, deny=True, exclusive=exclusive)
-        rule.save()
+            deny = True
+            action = cant_do
+
+        rule, created = self.get_or_create(action=action, predicate=predicate, deny=deny, exclusive=exclusive)
         for group in groups:
             group, created = GroupName.objects.get_or_create(name=group)
             rule.groups.add(group)
+
 
 class GroupName(models.Model):
     name = models.CharField(max_length=80, null=True, blank=False)
 
 class Rule(models.Model):
-    deferred_rules = []
-
-    ALLOW, DENY = "ALLOW", "DENY"
-    action_type = (("Allow", ALLOW), ("Deny", DENY))
-
     action = models.CharField(max_length=20, null=False)
     groups = models.ManyToManyField(GroupName)
     predicate = models.CharField(max_length=80)
@@ -76,13 +71,3 @@ class Rule(models.Model):
 
     def __str__(self):
         return self.__repr__()
- 
-    @classmethod
-    def deferred(self, **kwargs):
-        self.deferred_rules.append(kwargs)
-
-@receiver(post_syncdb, )
-def create_deferred_rules(sender, **kwargs):
-    for rule in Rule.deferred_rules:
-        Rule.objects.get_or_create(**rule)
-

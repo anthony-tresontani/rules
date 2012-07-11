@@ -97,8 +97,6 @@ class PredicateMetaClass(type):
                     raise AttributeError("method %s of class %s should be a classmethod" % (attr, classname))
             if not "name" in classDict:
                 raise AttributeError("Rule %s should have a name attribute" % classname)
-            #if not "group_name" in classDict:
-            #    raise AttributeError("Rule %s should have a group_name attribute" % classname)
             cls.register(cls)
         return cls
 
@@ -134,15 +132,6 @@ class Predicate(object):
     def apply(cls, obj):
         return _apply(cls, obj)
 
-    @classmethod
-    def check_rules(cls, rules, obj):
-        next_rules = rules[1:]
-        next_rules.append(None)
-        rules = [rule() for rule in rules]
-        for (rule, next_) in zip(rules, next_rules):
-            rule.next_ = next_
-        rule[0].check(obj)
-
     def check(self, obj):
         return _apply(self, obj)
 
@@ -155,23 +144,19 @@ class RuleHandler(object):
         self.action = action
         self.for_ = for_
         self.groups = Group.get_groups(self.for_)
-        logger.info("GROUPS %s", self.groups)
         self.permissions = get_permissions(self.action, self.groups)
 
     def check(self):
-        return self._check()
-
-    def _check(self):
-        logger.info("-"*8 + "CHECKING RULES" + "-"*8)
-        logger.info("   Permissions: %s", self.permissions)
+       logger.info("-"*8 + "CHECKING RULES" + "-"*8)
+       logger.info("   Permissions: %s", self.permissions)
+       result = self._check()
+       logger.info("-"*8 + "RULES CHECKED" + "-"*8)
+       return result
 
 class ApplyRules(RuleHandler):
     def __init__(self, on, action, for_):
         super(ApplyRules, self).__init__(on, action, for_)
         self.model = self.on.model
-
-    def get_no_permission_value(self):
-        return self.model.objects.none()
 
     def apply_perm(self, perm, method):
         rule = Predicate.get_by_name(perm.predicate)
@@ -184,7 +169,6 @@ class ApplyRules(RuleHandler):
         return on
 
     def _check(self):
-        super(ApplyRules, self)._check()
         logger.info("   Rules applied on %d objects: %s", len(self.on), self.on)
         on = None
         for permission in self.permissions:
@@ -193,7 +177,6 @@ class ApplyRules(RuleHandler):
             logger.info("        After filter %s: %s", permission, self.on)
 
         logger.info("   %d allowed objects: %s", len(self.on), self.on)
-        logger.info("-"*8 + "RULES CHECKED" + "-"*8)
         return self.on
 
 
@@ -203,7 +186,6 @@ class IsRuleMatching(RuleHandler):
         self.reason = None
 
     def _check(self):
-        super(IsRuleMatching, self)._check()
         logger.info("   Rules applied on objects: %s", self.on)
         result = True
         for permission in self.permissions:
@@ -216,6 +198,5 @@ class IsRuleMatching(RuleHandler):
                 return False
 
         logger.info("    Return %s", result)
-        logger.info("-"*8 + "RULES CHECKED" + "-"*8)
         return result
 
