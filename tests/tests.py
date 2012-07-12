@@ -3,7 +3,7 @@ from django.test import TestCase
 from hamcrest import *
 from django_dynamic_fixture import get
 
-from rules.base import ApplyRules, IsRuleMatching, Group, get_permissions
+from rules.base import ApplyRules, IsRuleMatching, Group, get_permissions, get_view_decorator
 from rules.models import Rule
 from sample.models import *
 from sample.acl import *
@@ -176,3 +176,38 @@ class TestRules(TestCase):
        with self.assertRaises(AttributeError):
            type("invalidRule", (Predicate,), {"apply_obj": lambda x:x})
        type("validRule", (Predicate,), {"apply_obj": 10, "name": "name", "group_name": "group_name"}) # Should not raise an exception
+
+class MockRequest(object):
+    def __init__(self, user):
+        self.user = user
+
+class TestHelpers(TestCase):
+    def setUp(self):
+        Rule.objects.create_rule(groups_in=['anonymous'], cant_do="see_content", predicate="any_content")
+
+        can_see_content = get_view_decorator("see_content")
+        @can_see_content
+        def test_view(self, **kwargs): 
+            return "content"
+
+        @can_see_content(deny=lambda x: "deny")
+        def test_view_arg(self, **kwargs): 
+            return "content"
+
+        self.test_view = test_view
+        self.test_view_arg = test_view_arg
+        self.self_fct = ""
+
+    def test_decorator_no_args(self):
+        kwargs = {"request": None}
+        assert_that( self.test_view(self.self_fct, **kwargs), is_(""))
+
+    def test_decorator_with_args(self):
+        kwargs = {"request": None}
+        assert_that( self.test_view_arg(self.self_fct, **kwargs), is_("deny"))
+
+    def test_decorator_valid(self):
+        kwargs = {"request": MockRequest("logged")}
+        assert_that( self.test_view(self.self_fct, **kwargs), is_("content"))
+
+

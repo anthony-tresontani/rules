@@ -71,3 +71,12 @@ class AsCustomer(Predicate):
         if isinstance(obj, User):
            return "customergroup" in Group.get_groups(obj)
         return False
+
+class AnyContent(Predicate):
+    name = "any_content" 
+
+    @classmethod
+    def apply_obj(cls, obj):
+        return True
+
+

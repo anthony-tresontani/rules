@@ -190,6 +190,7 @@ class IsRuleMatching(RuleHandler):
         result = True
         for permission in self.permissions:
             rule = Predicate.get_by_name(permission.predicate)
+            logger.info("Predicate name %s", permission.predicate)
             result = rule.apply(obj=self.on)
             result = not result if permission.deny else result
             if not result:
@@ -200,3 +201,21 @@ class IsRuleMatching(RuleHandler):
         logger.info("    Return %s", result)
         return result
 
+
+def get_view_decorator(action):
+    def decorator(fn=None, deny=lambda x:""):
+        if fn:
+            def wrapped(self, *arg, **kwargs):
+                request = kwargs['request']
+                user = getattr(request, "user", None)
+                if IsRuleMatching(on=self, action=action, for_=user).check():
+                    val = fn(self, *arg, **kwargs)
+                else:
+                    val = deny(self)
+                return val
+            return wrapped
+        else:
+            def partial_inner(func):
+                return decorator(func, deny)   
+            return partial_inner
+    return decorator

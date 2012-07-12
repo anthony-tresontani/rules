@@ -47,13 +47,14 @@ class Rule(models.Model):
 
     def save(self, *args, **kwargs):
         from rules.base import Group, Predicate
-        if self.pk:
-            for group in self.groups.all():
-                if group not in Group.get_group_names():
-                    raise ValueError("Group %s has not been registered" % group)
-            if self.predicate not in Predicate.get_rule_names() and self.predicate:
-                raise ValueError("Predicate %s has not been registered" % self.predicate)
         super(Rule, self).save(*args, **kwargs)
+        for group in self.groups.all():
+            if group not in Group.get_group_names():
+                self.delete()
+                raise ValueError("Group '%s' has not been registered" % group)
+        if self.predicate not in Predicate.get_rule_names() and self.predicate:
+           self.delete()
+           raise ValueError("Predicate '%s' has not been registered" % self.predicate)
 
     def __repr__(self):
         group = "for groups in %s"

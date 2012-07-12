@@ -31,4 +31,11 @@ class RepGroup(Group):
     def belong(cls, obj):
         return obj.username == "rep"
 
+class NoneGroup(Group):
+    name = "anonymous"
+
+    @classmethod
+    def belong(cls, obj):
+        return obj is None
+
 
