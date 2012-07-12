@@ -187,11 +187,11 @@ class TestHelpers(TestCase):
 
         can_see_content = get_view_decorator("see_content")
         @can_see_content
-        def test_view(self, **kwargs): 
+        def test_view(self, *args, **kwargs): 
             return "content"
 
         @can_see_content(deny=lambda x: "deny")
-        def test_view_arg(self, **kwargs): 
+        def test_view_arg(self, *args, **kwargs): 
             return "content"
 
         self.test_view = test_view
@@ -199,15 +199,22 @@ class TestHelpers(TestCase):
         self.self_fct = ""
 
     def test_decorator_no_args(self):
-        kwargs = {"request": None}
+        kwargs = {"request": "req"}
         assert_that( self.test_view(self.self_fct, **kwargs), is_(""))
 
     def test_decorator_with_args(self):
-        kwargs = {"request": None}
+        kwargs = {"request": "req"}
         assert_that( self.test_view_arg(self.self_fct, **kwargs), is_("deny"))
 
     def test_decorator_valid(self):
         kwargs = {"request": MockRequest("logged")}
         assert_that( self.test_view(self.self_fct, **kwargs), is_("content"))
+
+
+    def test_decorator_in_class_based_view(self):
+        """
+           pass request as a positional args
+        """
+        assert_that( self.test_view(self.self_fct, MockRequest("logged")), is_("content"))
 
 

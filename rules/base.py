@@ -206,7 +206,9 @@ def get_view_decorator(action):
     def decorator(fn=None, deny=lambda x:""):
         if fn:
             def wrapped(self, *arg, **kwargs):
-                request = kwargs['request']
+                request = kwargs.get('request', None)
+                if not request:
+                    request = arg[0]
                 user = getattr(request, "user", None)
                 if IsRuleMatching(on=self, action=action, for_=user).check():
                     val = fn(self, *arg, **kwargs)
