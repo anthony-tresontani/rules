@@ -100,6 +100,21 @@ you will get:
 
     list_of_products =  [ productB ]
 
+View decorator
+==============
+
+You may want to decorate a view.
+There is an helper to do that simply.
+For example:
+
+    from rules.base import get_view_decorator
+
+    can_see_products = get_view_decorator("see_products")
+
+    @can_see_products
+    def get(self, *args, **kwargs):
+         ...
+
 
 Contribute
 ==========

@@ -1,4 +1,4 @@
-Django==1.4
+Django==1.2
 PyHamcrest==1.6
 django-dynamic-fixture==1.6.3
 django-nose==1.1
